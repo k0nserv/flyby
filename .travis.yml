@@ -1,0 +1,31 @@
+sudo: required
+services:
+- docker
+
+language: python
+
+python:
+- 3.5.0
+
+install:
+- pip install -r requirements.txt
+- pip install -r test-requirements.txt
+
+script:
+- export BOTO_CONFIG=/tmp/bogusvalue
+- python -m pytest
+
+after_success:
+- docker login -u $DOCKER_USER -p $DOCKER_PASS
+- export REPO=skyscanner/flyby
+- export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH; fi`
+- docker build -t $REPO:$COMMIT .
+- docker tag $REPO:$COMMIT $REPO:$TAG
+- docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
+- docker push $REPO
+
+env:
+  global:
+  - COMMIT=${TRAVIS_COMMIT::8}
+  - secure: YBRTh3hHo2ZaZ0HPrkYOcAHf1J6h+gEjxJzNkB8v0swwlH8AF8o4GITtqcCZM9Qx/NMeIKYmOTjXZMh4HMYwiNDJVer9Zr3PXI/DW/AOwv+2yoXJ2DbhZN3DBQ84P6uoZLs3krLHW6hgptHaZunHxcJ+9zjUpEHWBMMgduSc593Axck5uoms3WWWPO3Dy+tTSOUxl0r02sXBEDlRiBkJYWY2GrN3DjTu3cxKaL0Vzg3JdAJH8lEtE7TkFNjVlmrldF+d+wxxRZCNBHNCxK/pTlX/nQQU7plHC1/iLtGoOLSWhnr4ANnMqLikFEnqg3FVnD7t/2ZdYgaSrIM+L9Zw7wXcBO794e6MxzSuA0N2WwXFFDgTsusB/VHJCKqH03MaANnRUSCjf8hazn3PuFmbYEQbnNSBHPvgkBMWAbYLxQuMTIoj8VDXUlh3XfTFKgkLM9DuAINSrpmCbD2ggXfDUw6zWFrafeXTfGj03g2jdmnYEKuD4XD0KjDk09ftR2pEhqv08YE5nbDqBxNxmGRqY8A+EGmF68no/AyLEScJ7o+wLDsCNa/rQbH9sFkBrXZeKIb+9gFgHwQUjlKw4bGcFy6wT6ZKyf3J5geX0bjY1bRjfadPnHW017nZTCReEg5CBesk01O3V67stev+LoZPknWKdGm+8RrLFdj5FlG20BM=
+  - secure: bj7Hr2k4GFJNnzB9RRNYSHEHv5ydayPpwPhuigsJCXX6UmbRpgkVvHAAGcGBYhPD+qNz2AnqNKrDXd+tm3cWb9xLGwxabGoBjCFIIUouqiKhHQN7/04Q3rvWOgVhXUqJSqihtRT3y4pY9GluEbdFiK1YQrOqOyXSpMJWEFKaLzChvq3yQobQngy++/fs5qw/hkaKj0Dlpyl96BMOlIKI814/dmCVusCI6x8GkBL7EqjbKM70TEOlkGxgujZ0dc3S5SHmsIZvX724VAosmKlz2ElQFGY9qo7hkdU3PW5coR799bu/Uh1vdvdDAE43cGJpocd3hIPB6ueiXn3we4Q27exrLstCrg+jZ7lKJkC9vR+3ZRT0dcbbV2xzEVC33mUh3vhZTU5ICYDHttfkGvKl60VkJNf95JjnJL3in1Qh6bCzK1t6NllYEYBuGrYqKSOWSxNZhQiqXcg+62bsnteBgyEWTtmCECaEpCYuyXATJhwvV/l2xscdG5CdRWqpypP3W+Qvxxy/WrjC2nklbEZ+wFGl4xVKFdOP1DCaKN53XbiKoppfleJwPpYPWKJFaiW1h++kIUGaJpKNlvNWqCUDEjcMQOupmIFCpv4Tc/VO4/9N9cwlvW3dirlcds6L+vF/DZd5kMRqrZ0WngigDjkOg+s/oZ9rCGnwlS9kn+cAjFE=
