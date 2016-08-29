@@ -1,0 +1,16 @@
+version: '2'
+services:
+  flyby:
+    build: .
+    environment:
+      AWS_DEFAULT_REGION: 'eu-west-1'
+      AWS_ACCESS_KEY_ID: foo
+      AWS_SECRET_ACCESS_KEY: bar
+    links: [moto]
+    ports: ["80:80", "5000:5000"]
+    command: ['flyby', 'start']
+  moto:
+    build:
+      context: .
+      dockerfile: MOTO.dockerfile
+    ports: ['8000:8000']

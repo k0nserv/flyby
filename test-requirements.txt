@@ -1,0 +1,5 @@
+pytest>=3.0.1
+moto>=0.4.25
+pytest-cov>=2.3.1
+pytest-mock>=1.2
+pytest-pep8>=1.0.6
