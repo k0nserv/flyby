@@ -30,14 +30,33 @@ class ServiceModel(Model):
         return self.__dict__ == other.__dict__
 
 
-class ServiceBackendModel(Model):
+class TargetGroupModel(Model):
+    """
+    Service Target Group
+    """
+    class Meta:
+        table_name = "flyby-target-group"
+
+    service_name = UnicodeAttribute(hash_key=True)
+    target_group_name = UnicodeAttribute(range_key=True)
+    weight = NumberAttribute()
+
+    def as_dict(self):
+        return {
+            'weight': self.weight,
+            'target_group_name': self.target_group_name,
+        }
+
+
+class BackendModel(Model):
     """
     Service Backend Model
     """
     class Meta:
-        table_name = "flyby-service-backend"
+        table_name = "flyby-backend"
 
     service_name = UnicodeAttribute(hash_key=True)
+    target_group_name = UnicodeAttribute()
     host = UnicodeAttribute(range_key=True)
 
     def as_dict(self):

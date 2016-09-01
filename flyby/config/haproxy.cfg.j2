@@ -58,9 +58,11 @@ backend flyby-admin
 backend {{ service.name }}-cluster
     option httpchk GET {{ service.healthcheck_path }}
     
-    balance leastconn
+    balance roundrobin
     option httpclose
     option forwardfor
-    {% for backend in service.backends %}server {{ service.name}}{{loop.index}} {{ backend.host }} check inter 10s 
+    {% for target in service.target_groups %}
+    {% for backend in target.backends %}server {{ service.name}}-{{target.target_group_name}}{{loop.index}} {{ backend.host }} check inter 10s weight {{target.weight}}
+    {% endfor %}
     {% endfor %}
 {% endfor %}

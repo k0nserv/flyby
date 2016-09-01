@@ -12,9 +12,18 @@ def home():
 
 
 @app.route("/service", methods=['POST'])
-def create_service():
-    data = Service.create(flask.request.get_json(force=True))
+def register_service():
+    data = Service.register_service(flask.request.get_json(force=True))
     return flask.jsonify(data)
+
+
+@app.route("/service/<service_name>", methods=['DELETE'])
+def deregister_service(service_name):
+    try:
+        Service.deregister_service(service_name)
+    except Service.DoesNotExist:
+        return 'Service: {} not currently registered with Flyby.'.format(service_name), 404
+    return 'OK'
 
 
 @app.route("/service", methods=['GET'])
@@ -24,24 +33,41 @@ def query_services():
 
 @app.route("/service/<service_name>", methods=['GET'])
 def describe_service(service_name):
-    return flask.jsonify(Service.describe(service_name))
+    try:
+        return flask.jsonify(Service.describe_service(service_name))
+    except Service.DoesNotExist:
+        return 'Service: {} not currently registered with Flyby.'.format(service_name), 404
 
 
-@app.route("/service/<service_name>/register", methods=['POST'])
-def register_backend(service_name):
-    data = Service.register(service_name, flask.request.get_json(force=True))
+@app.route("/target", methods=['POST'])
+def register_target_group():
+    data = Service.register_target_group(flask.request.get_json(force=True))
     return flask.jsonify(data)
 
 
-@app.route("/service/<service_name>/<host>", methods=['DELETE'])
-def deregister_backend(service_name, host):
-    Service.deregister(service_name, host)
+@app.route("/target/<service_name>/<target_group_name>", methods=['DELETE'])
+def delete_service(service_name, target_group_name):
+    try:
+        Service.deregister_target_group(service_name, target_group_name)
+    except Service.DoesNotExist:
+        return 'Target group: {} for service: {} not currently registered with Flyby.'.format(target_group_name,
+                                                                                              service_name), 404
     return 'OK'
 
 
-@app.route("/service/<service_name>", methods=['DELETE'])
-def delete_service(service_name):
-    Service.delete(service_name)
+@app.route("/backend", methods=['POST'])
+def register_backend():
+    data = Service.register_backend(flask.request.get_json(force=True))
+    return flask.jsonify(data)
+
+
+@app.route("/backend/<service_name>/<target_group_name>/<host>", methods=['DELETE'])
+def deregister_backend(service_name, target_group_name, host):
+    try:
+        Service.deregister_backend(service_name, target_group_name, host)
+    except Service.DoesNotExist:
+        return 'Backend: {} for target group: {} in service: {}' \
+               ' not currently registered with Flyby.'.format(host, target_group_name, service_name), 404
     return 'OK'
 
 
