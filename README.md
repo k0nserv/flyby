@@ -11,6 +11,7 @@ Every minute the load balancer syncs-up and refreshes its configuration when nee
 
 Demo
 ====
+TODO: This demo does not currently work with moto
 
 This is a simple scenario of registering a foo example service
 ```
@@ -21,18 +22,27 @@ docker-compose up
 docker run -e NAME=foo -d -p 9000:80 tutum/hello-world
 
 # Register a new service foo
-
 curl -X POST -H "Content-Type: application/json" -d '{
     "name": "foo",
     "fqdn": "foo.example.com"
 }
 ' "http://192.168.99.100:5000/service"
 
+# Register a new target group 'foo-blue'
+curl -X POST -H "Content-Type: application/json" -d '{
+    "service_name": "foo",
+    "target_group_name": "foo-blue",
+    "weight": 50
+}
+' "http://192.168.99.100:5000/target"
+
 # Register a new backend
 curl -X POST -H "Content-Type: application/json" -d '{
-    "host": "192.168.99.100:9000"
+    "host": "192.168.99.100:9000",
+    "service_name": "foo",
+    "target_group_name": "foo-blue"
 }
-' "http://192.168.99.100:5000/service/foo/register"
+' "http://192.168.99.100:5000/backend"
 
 # Check the data
 curl -X GET "http://192.168.99.100:5000/service"

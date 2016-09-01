@@ -14,7 +14,19 @@ def cli():
     pass
 
 
-def update(fqdn):
+def update(fqdn, dynamo_region):
+    BackendModel.Meta.region = dynamo_region
+    ServiceModel.Meta.region = dynamo_region
+    TargetGroupModel.Meta.region = dynamo_region
+    if not BackendModel.exists():
+        logger.info("Creating {} table".format("backend"))
+        BackendModel.create_table(read_capacity_units=1, write_capacity_units=1, wait=True)
+    if not ServiceModel.exists():
+        logger.info("Creating {} table".format("service"))
+        ServiceModel.create_table(read_capacity_units=1, write_capacity_units=1, wait=True)
+    if not TargetGroupModel.exists():
+        logger.info("Creating {} table".format("target group"))
+        TargetGroupModel.create_table(read_capacity_units=1, write_capacity_units=1, wait=True)
     services = Service.query_services()
     Haproxy().update(fqdn=fqdn, services=services)
 
@@ -28,7 +40,7 @@ def update(fqdn):
               default='eu-west-1',
               help="The AWS region of the DynamoDB tables Flyby stores config in")
 @click.option('--debug', default=False, help='Debug mode.', is_flag=True)
-def start(debug, fqdn, region):
+def start(debug, fqdn, dynamo_region):
     """
     Starts an APScheduler job to periodically reload HAProxy config as well as run the API to register/deregister
     new services, target groups and backends.
@@ -37,19 +49,7 @@ def start(debug, fqdn, region):
     :param region: The AWS region of the DynamoDB tables Flyby stores and reads config in
     :return:
     """
-    BackendModel.Meta.region = region
-    ServiceModel.Meta.region = region
-    TargetGroupModel.meta.region = region
-    if not BackendModel.exists():
-        logger.info("Creating {} table".format("backend"))
-        BackendModel.create_table(read_capacity_units=1, write_capacity_units=1, wait=True)
-    if not ServiceModel.exists():
-        logger.info("Creating {} table".format("service"))
-        ServiceModel.create_table(read_capacity_units=1, write_capacity_units=1, wait=True)
-    if not TargetGroupModel.exists():
-        logger.info("Creating {} table".format("target group"))
-        TargetGroupModel.create_table(read_capacity_units=1, write_capacity_units=1, wait=True)
     scheduler = BackgroundScheduler(timezone=utc)
-    scheduler.add_job(update, 'interval', seconds=10, args=(fqdn,))
+    scheduler.add_job(update, 'interval', seconds=10, args=(fqdn, dynamo_region))
     scheduler.start()
     app.run(host='0.0.0.0')
