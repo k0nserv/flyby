@@ -38,7 +38,7 @@ class Haproxy:
             if p:
                 pid = p.pid
                 p.wait()
-                logger.info("HAProxy(PID:%s) has been terminated" % str(pid))
+                logger.info("HAProxy(PID:{}) has been terminated".format(str(pid)))
 
         if Haproxy.process:
             # Reload haproxy
@@ -50,10 +50,10 @@ class Haproxy:
             _thread.start_new_thread(_wait_pid, (old_process,))
             Haproxy.process = process
             logger.info(
-                "HAProxy has been reloaded(PID: %s)", str(Haproxy.process.pid))
+                "HAProxy has been reloaded(PID: {})".format(str(Haproxy.process.pid)))
         else:
             # Launch haproxy
             logger.info("Launching HAProxy")
             Haproxy.process = subprocess.Popen(self.command)
             logger.info(
-                "HAProxy has been launched(PID: %s)", str(Haproxy.process.pid))
+                "HAProxy has been launched(PID: {})".format(str(Haproxy.process.pid)))
