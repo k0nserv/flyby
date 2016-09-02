@@ -39,8 +39,11 @@ class TargetGroupModel(Model):
         table_name = "target-group"
 =======
         table_name = "flyby-target-group"
+<<<<<<< HEAD
         host = "http://localdynamodb:7777"
 >>>>>>> added facility for local dynamodb
+=======
+>>>>>>> Use a specific docker-compose file for local DynamoDB (#5)
 
     service_name = UnicodeAttribute(hash_key=True)
     target_group_name = UnicodeAttribute(range_key=True)
@@ -62,8 +65,11 @@ class BackendModel(Model):
         table_name = "backend"
 =======
         table_name = "flyby-backend"
+<<<<<<< HEAD
         host = "http://localdynamodb:7777"
 >>>>>>> added facility for local dynamodb
+=======
+>>>>>>> Use a specific docker-compose file for local DynamoDB (#5)
 
     service_name = UnicodeAttribute(hash_key=True)
     target_group_name = UnicodeAttribute()

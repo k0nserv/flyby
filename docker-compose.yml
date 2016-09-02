@@ -11,5 +11,5 @@ services:
   moto:
     build:
       context: .
-      dockerfile: LOCALDYNAMODB.dockerfile
-    expose: ["7777"]
+      dockerfile: MOTO.dockerfile
+    ports: ['8000:8000']
