@@ -9,7 +9,6 @@ class ServiceModel(Model):
     """
     class Meta:
         table_name = "service"
-
     name = UnicodeAttribute(hash_key=True)
     fqdn = UnicodeAttribute()
     healthcheck_path = UnicodeAttribute(default='/')
@@ -36,7 +35,12 @@ class TargetGroupModel(Model):
     Service Target Group
     """
     class Meta:
+<<<<<<< HEAD
         table_name = "target-group"
+=======
+        table_name = "flyby-target-group"
+        host = "http://localdynamodb:7777"
+>>>>>>> added facility for local dynamodb
 
     service_name = UnicodeAttribute(hash_key=True)
     target_group_name = UnicodeAttribute(range_key=True)
@@ -54,7 +58,12 @@ class BackendModel(Model):
     Service Backend Model
     """
     class Meta:
+<<<<<<< HEAD
         table_name = "backend"
+=======
+        table_name = "flyby-backend"
+        host = "http://localdynamodb:7777"
+>>>>>>> added facility for local dynamodb
 
     service_name = UnicodeAttribute(hash_key=True)
     target_group_name = UnicodeAttribute()
