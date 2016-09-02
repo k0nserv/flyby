@@ -6,13 +6,11 @@ services:
       AWS_DEFAULT_REGION: 'eu-west-1'
       AWS_ACCESS_KEY_ID: foo
       AWS_SECRET_ACCESS_KEY: bar
-    links: [localdynamodb]
+    links: [moto]
     ports: ["80:80", "5000:5000"]
-    command: ['flyby', 'start', '--dynamo-host', 'http://localdynamodb:7777']
-    depends_on:
-    - localdynamodb
-  localdynamodb:
+    command: ['flyby', 'start', '--dynamo-host', 'http://moto:8000']
+  moto:
     build:
       context: .
-      dockerfile: LOCALDYNAMODB.dockerfile
-    expose: ["7777"]
+      dockerfile: MOTO.dockerfile
+    ports: ['8000:8000']

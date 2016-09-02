@@ -9,7 +9,7 @@ class ServiceModel(Model):
     """
     class Meta:
         table_name = "flyby-service"
-        host="http://localdynamodb:7777"
+
     name = UnicodeAttribute(hash_key=True)
     fqdn = UnicodeAttribute()
     healthcheck_path = UnicodeAttribute(default='/')
@@ -37,7 +37,6 @@ class TargetGroupModel(Model):
     """
     class Meta:
         table_name = "flyby-target-group"
-        host = "http://localdynamodb:7777"
 
     service_name = UnicodeAttribute(hash_key=True)
     target_group_name = UnicodeAttribute(range_key=True)
@@ -56,7 +55,6 @@ class BackendModel(Model):
     """
     class Meta:
         table_name = "flyby-backend"
-        host = "http://localdynamodb:7777"
 
     service_name = UnicodeAttribute(hash_key=True)
     target_group_name = UnicodeAttribute()
