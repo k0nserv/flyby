@@ -15,9 +15,6 @@ def cli():
 
 
 def update(fqdn, dynamo_region, dynamo_host):
-    BackendModel.Meta.region = dynamo_region
-    ServiceModel.Meta.region = dynamo_region
-    TargetGroupModel.Meta.region = dynamo_region
     models = [BackendModel, ServiceModel, TargetGroupModel]
     for model in models:
         model.Meta.region = dynamo_region
