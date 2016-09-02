@@ -11,7 +11,8 @@ Every minute the load balancer syncs-up and refreshes its configuration when nee
 
 Demo
 ====
-TODO: This demo does not currently work with moto
+*Note:* These commands assume you are using a docker-machine environment on `192.168.99.100`, you may need to update the IP address curl-ed to. 
+This docker-compose demo uses [moto](https://github.com/spulec/moto) for mocking DynamoDB, however it is possible to use other backends locally. 
 
 This is a simple scenario of registering a foo example service
 ```

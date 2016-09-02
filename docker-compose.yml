@@ -8,7 +8,7 @@ services:
       AWS_SECRET_ACCESS_KEY: bar
     links: [localdynamodb]
     ports: ["80:80", "5000:5000"]
-    command: ['flyby', 'start']
+    command: ['flyby', 'start', '--dynamo-host', 'http://localdynamodb:7777']
     depends_on:
     - localdynamodb
   localdynamodb:
