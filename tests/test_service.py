@@ -1,7 +1,8 @@
 import pytest
-from flyby.service import Service
 from operator import itemgetter
-from flyby.service import TargetGroupModel, BackendModel
+from flyby.service import TargetGroupModel, BackendModel, Service
+import string
+import random
 
 
 def test_service_register_service(dynamodb):
@@ -171,6 +172,78 @@ def test_service_register_backend(dynamodb):
     ) == {
                'host': '10.0.0.1:80',
            }
+
+
+def test_service_register_backend_allows_dns_for_host(dynamodb):
+    Service.register_service({'name': 'foo', 'fqdn': 'foo.example.com'})
+    Service.register_target_group({'service_name': 'foo', 'target_group_name': 'foo-blue', 'weight': 80})
+    host = 'http://nice.example.com:80'
+    assert Service.register_backend(
+        {
+            'host': host,
+            'service_name': 'foo',
+            'target_group_name': 'foo-blue',
+        }
+    ) == {
+        'host': host,
+    }
+
+
+def test_service_register_backend_fails_with_missing_port_in_url(dynamodb):
+    Service.register_service({'name': 'foo', 'fqdn': 'foo.example.com'})
+    with pytest.raises(Service.NotValid) as exec_info:
+        Service.register_backend({
+            'host': 'http://nice.example.com',
+            'service_name': 'foo',
+            'target_group_name': 'foo-blue'
+        })
+    assert 'Host has no port associated' in str(exec_info.value)
+
+
+def test_service_register_backend_fails_with_negative_port_in_url(dynamodb):
+    Service.register_service({'name': 'foo', 'fqdn': 'foo.example.com'})
+    with pytest.raises(Service.NotValid) as exec_info:
+        Service.register_backend({
+            'host': 'http://nice.example.com:-1',
+            'service_name': 'foo',
+            'target_group_name': 'foo-blue'
+        })
+    assert 'Host has invalid port number' in str(exec_info.value)
+
+
+def test_service_register_backend_fails_with_large_port_in_url(dynamodb):
+    Service.register_service({'name': 'foo', 'fqdn': 'foo.example.com'})
+    with pytest.raises(Service.NotValid) as exec_info:
+        Service.register_backend({
+            'host': 'http://nice.example.com:65536',
+            'service_name': 'foo',
+            'target_group_name': 'foo-blue'
+        })
+    assert 'Host has invalid port number' in str(exec_info.value)
+
+
+def test_service_register_backend_fails_with_too_long_url(dynamodb):
+    url = "http://{0}".format(''.join([random.choice(string.ascii_lowercase) for n in range(256)]))
+    Service.register_service({'name': 'foo', 'fqdn': 'foo.example.com'})
+    with pytest.raises(Exception) as exec_info:
+        Service.register_backend({
+            'host': url + ":80",
+            'service_name': 'foo',
+            'target_group_name': 'foo-blue'
+        })
+    assert 'Url is greater than the 255 byte limit' in str(exec_info.value)
+
+
+def test_service_register_backend_fails_with_long_segment_in_url(dynamodb):
+    Service.register_service({'name': 'foo', 'fqdn': 'foo.example.com'})
+    url = "http://{0}.test.com".format(''.join([random.choice(string.ascii_lowercase) for _ in range(64)]))
+    with pytest.raises(Service.NotValid) as exec_info:
+        Service.register_backend({
+            'host': url + ":80",
+            'service_name': 'foo',
+            'target_group_name': 'foo-blue'
+        })
+    assert 'URL segment too long:' in str(exec_info.value)
 
 
 def test_service_register_does_not_exist(dynamodb):

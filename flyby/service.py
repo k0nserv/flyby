@@ -1,5 +1,5 @@
+from flyby.utils import ValidHost
 from validator import Required
-from validator import Pattern
 from validator import Length
 from validator import Range
 from validator import validate
@@ -164,7 +164,7 @@ class Service:
     @classmethod
     def validate_backend(cls, data):
         rules = {
-            "host": [Required, Pattern('\d+.\d+.\d+.\d+:\d+')],
+            "host": [Required, ValidHost()],
             "service_name": [Required, Length(3, 25)],
             "target_group_name": [Required],
         }
