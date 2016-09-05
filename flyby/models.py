@@ -8,7 +8,7 @@ class ServiceModel(Model):
     Service Model
     """
     class Meta:
-        table_name = "flyby-service"
+        table_name = "service"
 
     name = UnicodeAttribute(hash_key=True)
     fqdn = UnicodeAttribute()
@@ -36,7 +36,7 @@ class TargetGroupModel(Model):
     Service Target Group
     """
     class Meta:
-        table_name = "flyby-target-group"
+        table_name = "target-group"
 
     service_name = UnicodeAttribute(hash_key=True)
     target_group_name = UnicodeAttribute(range_key=True)
@@ -54,7 +54,7 @@ class BackendModel(Model):
     Service Backend Model
     """
     class Meta:
-        table_name = "flyby-backend"
+        table_name = "backend"
 
     service_name = UnicodeAttribute(hash_key=True)
     target_group_name = UnicodeAttribute()
