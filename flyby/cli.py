@@ -14,9 +14,10 @@ def cli():
     pass
 
 
-def update(fqdn, dynamo_region, dynamo_host):
+def update(fqdn, dynamo_region, dynamo_host, table_root):
     models = [BackendModel, ServiceModel, TargetGroupModel]
     for model in models:
+        model.Meta.table_name = "{0}-{1}".format(table_root, model.Meta.table_name)
         model.Meta.region = dynamo_region
         if dynamo_host:
             model.Meta.host = dynamo_host
@@ -28,18 +29,21 @@ def update(fqdn, dynamo_region, dynamo_host):
 
 
 @cli.command()
-@click.option('--fqdn',
+@click.option('--fqdn', '-f',
               envvar="FB_FQDN",
               default="flyby.example.com",
               help="Flyby's fully qualified domain name. ie flyby.example.com")
-@click.option('--dynamo-region',
+@click.option('--dynamo-region', '-r',
               default='eu-west-1',
               help="The AWS region of the DynamoDB tables Flyby stores config in")
-@click.option('--dynamo-host',
+@click.option('--dynamo-host', '-d',
               default=None,
               help="The host to use for DynamoDB connections, used for local testing or proxying")
+@click.option('--table-root', '-t',
+              default='flyby',
+              help="The root name of the DynamoDB table flyby stores config in, all tables will start with this")
 @click.option('--debug', default=False, help='Debug mode.', is_flag=True)
-def start(debug, fqdn, dynamo_region, dynamo_host):
+def start(debug, fqdn, dynamo_region, dynamo_host, table_root):
     """
     Starts an APScheduler job to periodically reload HAProxy config as well as run the API to register/deregister
     new services, target groups and backends.
@@ -48,9 +52,11 @@ def start(debug, fqdn, dynamo_region, dynamo_host):
     :param dynamo_region: The AWS region of the DynamoDB tables Flyby stores and reads config in
     :param dynamo_host: The hostname and port to use for DynamoDB connections. Useful for local testing with
     moto or DynamoDB Local.
+    :param table_root: The root that will be used for table names in DynamboDB. This will be prefixed to all tables
+    created.
     :return:
     """
     scheduler = BackgroundScheduler(timezone=utc)
-    scheduler.add_job(update, 'interval', seconds=10, args=(fqdn, dynamo_region, dynamo_host))
+    scheduler.add_job(update, 'interval', seconds=10, args=(fqdn, dynamo_region, dynamo_host, table_root))
     scheduler.start()
     app.run(host='0.0.0.0')
