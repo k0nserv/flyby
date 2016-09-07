@@ -6,6 +6,7 @@ from flyby.models import ServiceModel, BackendModel, TargetGroupModel
 from flyby.service import Service
 from flyby.server import app
 import logging
+import yaml
 logger = logging.getLogger(__name__)
 
 
@@ -14,7 +15,7 @@ def cli():
     pass
 
 
-def update(fqdn, dynamo_region, dynamo_host, table_root):
+def update(fqdn, dynamo_region, dynamo_host, table_root, table_conf):
     models = [BackendModel, ServiceModel, TargetGroupModel]
     for model in models:
         model.Meta.table_name = "{0}-{1}".format(table_root, model.Meta.table_name)
@@ -23,7 +24,8 @@ def update(fqdn, dynamo_region, dynamo_host, table_root):
             model.Meta.host = dynamo_host
         if not model.exists():
             logger.info("Creating {} table".format(model.Meta.table_name))
-            model.create_table(read_capacity_units=1, write_capacity_units=1, wait=True)
+            config = table_conf.get(model.Meta.table_name, {'read_capacity_units': 1, 'write_capacity_units': 1})
+            model.create_table(wait=True, **config)
     services = Service.query_services()
     Haproxy().update(fqdn=fqdn, services=services)
 
@@ -36,6 +38,7 @@ def update(fqdn, dynamo_region, dynamo_host, table_root):
 @click.option('--dynamo-region', '-r',
               default='eu-west-1',
               help="The AWS region of the DynamoDB tables Flyby stores config in")
+@click.option('--table-capacity-config', envvar='FB_TABLE_CONFIG', help='yaml table capacity config file', default=None)
 @click.option('--dynamo-host', '-d',
               default=None,
               help="The host to use for DynamoDB connections, used for local testing or proxying")
@@ -43,20 +46,26 @@ def update(fqdn, dynamo_region, dynamo_host, table_root):
               default='flyby',
               help="The root name of the DynamoDB table flyby stores config in, all tables will start with this")
 @click.option('--debug', default=False, help='Debug mode.', is_flag=True)
-def start(debug, fqdn, dynamo_region, dynamo_host, table_root):
+def start(debug, fqdn, dynamo_region, table_capacity_config, dynamo_host, table_root):
     """
     Starts an APScheduler job to periodically reload HAProxy config as well as run the API to register/deregister
     new services, target groups and backends.
     :param debug: A debug flag
     :param fqdn: The fully qualified domain name of Flyby - requests coming here will go to the API endpoints
     :param dynamo_region: The AWS region of the DynamoDB tables Flyby stores and reads config in
+    :param table_capacity_config: The location of the config file to use on creation of the DynamoDB tables.
+    This currently only supports read and write capacity unit config.
     :param dynamo_host: The hostname and port to use for DynamoDB connections. Useful for local testing with
     moto or DynamoDB Local.
     :param table_root: The root that will be used for table names in DynamboDB. This will be prefixed to all tables
     created.
     :return:
     """
+    if table_capacity_config:
+        with open(table_capacity_config, 'r') as conf:
+            table_capacity_config = yaml.load(conf)
     scheduler = BackgroundScheduler(timezone=utc)
-    scheduler.add_job(update, 'interval', seconds=10, args=(fqdn, dynamo_region, dynamo_host, table_root))
+    scheduler.add_job(update, 'interval', seconds=10, args=(fqdn, dynamo_region, dynamo_host, table_root,
+                                                            table_capacity_config))
     scheduler.start()
     app.run(host='0.0.0.0')
