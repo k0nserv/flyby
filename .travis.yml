@@ -12,7 +12,6 @@ install:
 - pip install -r test-requirements.txt
 
 script:
-- flake8 --max-line-length=120 .
 - export BOTO_CONFIG=/tmp/bogusvalue
 - python -m pytest
 

@@ -1,6 +1,7 @@
 import pytest
 from flyby.service import Service
 from operator import itemgetter
+from flyby.service import TargetGroupModel, BackendModel
 
 
 def test_service_register_service(dynamodb):
@@ -127,9 +128,9 @@ def test_service_register_target_group(dynamodb):
             'weight': 50,
         },
     ) == {
-        'target_group_name': 'foo-blue',
-        'weight': 50,
-    }
+               'target_group_name': 'foo-blue',
+               'weight': 50,
+           }
 
 
 def test_service_deregister_target_group(dynamodb):
@@ -168,8 +169,8 @@ def test_service_register_backend(dynamodb):
             'target_group_name': 'foo-blue',
         }
     ) == {
-        'host': '10.0.0.1:80',
-    }
+               'host': '10.0.0.1:80',
+           }
 
 
 def test_service_register_does_not_exist(dynamodb):
@@ -205,7 +206,13 @@ def test_service_deregister(dynamodb):
             'target_group_name': 'foo-blue',
         }
     )
+    service_description = Service.describe_service('foo')
+    print(service_description)
     assert Service.deregister_service('foo') is True
+    with pytest.raises(TargetGroupModel.DoesNotExist):
+        TargetGroupModel.get('foo', 'foo-blue')
+    with pytest.raises(BackendModel.DoesNotExist):
+        BackendModel.get('foo', '10.0.0.3:80')
 
 
 def test_deregister_service_does_not_exist(dynamodb):

@@ -32,6 +32,12 @@ class Service:
             service = ServiceModel.get(name)
         except ServiceModel.DoesNotExist:
             raise Service.DoesNotExist(name)
+        service_description = cls.describe_service(name)
+        for target_group in service_description['target_groups']:
+            target_group_name = target_group['target_group_name']
+            for backend in target_group['backends']:
+                cls.deregister_backend(name, target_group_name, backend['host'])
+            cls.deregister_target_group(name, target_group_name)
         service.delete()
         return True
 
