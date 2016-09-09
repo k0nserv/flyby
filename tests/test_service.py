@@ -38,6 +38,7 @@ def test_service_describe(dynamodb):
             'host': '10.0.0.1:80',
             'service_name': 'foo',
             'target_group_name': 'foo-blue',
+            "is_failover": "false"
         }
     )
     Service.register_backend(
@@ -45,6 +46,7 @@ def test_service_describe(dynamodb):
             'host': '10.0.0.1:81',
             'service_name': 'foo',
             'target_group_name': 'foo-green',
+            "is_failover": "false"
         }
     )
     Service.register_backend(
@@ -52,6 +54,7 @@ def test_service_describe(dynamodb):
             'host': '10.0.0.2:80',
             'service_name': 'foo',
             'target_group_name': 'foo-green',
+            "is_failover": "false"
         }
     )
     assert Service.describe_service('foo') == {
@@ -66,7 +69,8 @@ def test_service_describe(dynamodb):
                 "target_group_name": "foo-blue",
                 "backends": [
                     {
-                        "host": '10.0.0.1:80'
+                        "host": '10.0.0.1:80',
+                        "is_failover": "false"
                     }
                 ],
                 "weight": 80
@@ -75,10 +79,12 @@ def test_service_describe(dynamodb):
                 "target_group_name": "foo-green",
                 "backends": [
                     {
-                        "host": "10.0.0.1:81"
+                        "host": "10.0.0.1:81",
+                        "is_failover": "false"
                     },
                     {
-                        "host": "10.0.0.2:80"
+                        "host": "10.0.0.2:80",
+                        "is_failover": "false"
                     }
                 ],
                 "weight": 40
@@ -168,9 +174,11 @@ def test_service_register_backend(dynamodb):
             'host': '10.0.0.1:80',
             'service_name': 'foo',
             'target_group_name': 'foo-blue',
+            "is_failover": "false"
         }
     ) == {
         'host': '10.0.0.1:80',
+        "is_failover": "false"
     }
 
 
@@ -183,9 +191,11 @@ def test_service_register_backend_allows_dns_for_host(dynamodb):
             'host': host,
             'service_name': 'foo',
             'target_group_name': 'foo-blue',
+            "is_failover": "false"
         }
     ) == {
         'host': host,
+        "is_failover": "false"
     }
 
 
@@ -195,7 +205,8 @@ def test_service_register_backend_fails_with_missing_port_in_url(dynamodb):
         Service.register_backend({
             'host': 'http://nice.example.com',
             'service_name': 'foo',
-            'target_group_name': 'foo-blue'
+            'target_group_name': 'foo-blue',
+            "is_failover": "false"
         })
     assert 'Host has no port associated' in str(exec_info.value)
 
@@ -206,7 +217,8 @@ def test_service_register_backend_fails_with_negative_port_in_url(dynamodb):
         Service.register_backend({
             'host': 'http://nice.example.com:-1',
             'service_name': 'foo',
-            'target_group_name': 'foo-blue'
+            'target_group_name': 'foo-blue',
+            "is_failover": "false"
         })
     assert 'Host has invalid port number' in str(exec_info.value)
 
@@ -217,7 +229,8 @@ def test_service_register_backend_fails_with_large_port_in_url(dynamodb):
         Service.register_backend({
             'host': 'http://nice.example.com:65536',
             'service_name': 'foo',
-            'target_group_name': 'foo-blue'
+            'target_group_name': 'foo-blue',
+            "is_failover": "false"
         })
     assert 'Host has invalid port number' in str(exec_info.value)
 
@@ -229,7 +242,8 @@ def test_service_register_backend_fails_with_too_long_url(dynamodb):
         Service.register_backend({
             'host': url + ":80",
             'service_name': 'foo',
-            'target_group_name': 'foo-blue'
+            'target_group_name': 'foo-blue',
+            "is_failover": "false"
         })
     assert 'Url is greater than the 255 byte limit' in str(exec_info.value)
 
@@ -241,7 +255,8 @@ def test_service_register_backend_fails_with_long_segment_in_url(dynamodb):
         Service.register_backend({
             'host': url + ":80",
             'service_name': 'foo',
-            'target_group_name': 'foo-blue'
+            'target_group_name': 'foo-blue',
+            "is_failover": "false"
         })
     assert 'URL segment too long:' in str(exec_info.value)
 
@@ -253,6 +268,7 @@ def test_service_register_does_not_exist(dynamodb):
                 'host': '10.0.0.3:80',
                 'service_name': 'foo',
                 'target_group_name': 'foo-blue',
+                "is_failover": "false"
             }
         )
 
@@ -265,6 +281,8 @@ def test_service_register_target_group_does_not_exist(dynamodb):
                 'host': '10.0.0.3:80',
                 'service_name': 'foo',
                 'target_group_name': 'foo-blue',
+                "is_failover": "false"
+
             }
         )
 
@@ -277,6 +295,7 @@ def test_service_deregister(dynamodb):
             'host': '10.0.0.3:80',
             'service_name': 'foo',
             'target_group_name': 'foo-blue',
+            "is_failover": "false"
         }
     )
     assert Service.deregister_service('foo') is True
