@@ -62,7 +62,12 @@ backend {{ service.name }}-cluster
     option httpclose
     option forwardfor
     {% for target in service.target_groups %}
-    {% for backend in target.backends %}server {{ service.name}}-{{target.target_group_name}}{{loop.index}} {{ backend.host }} check inter 10s weight {{target.weight}}
-    {% endfor %}
+        {% for backend in target.backends %}
+            {% if backend.is_failover is equalto "false"  %}
+            server {{ service.name}}-{{target.target_group_name}}{{loop.index}} {{ backend.host }} check inter 10s weight {{target.weight}}
+            {% else %}
+            server {{ service.name}}-{{target.target_group_name}}-backup {{ backend.host }} backup
+            {% endif %}
+        {% endfor %}
     {% endfor %}
 {% endfor %}

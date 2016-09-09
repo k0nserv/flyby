@@ -59,10 +59,12 @@ class BackendModel(Model):
     service_name = UnicodeAttribute(hash_key=True)
     target_group_name = UnicodeAttribute()
     host = UnicodeAttribute(range_key=True)
+    is_failover = UnicodeAttribute()
 
     def as_dict(self):
         return {
             'host': self.host,
+            'is_failover': "false" if not self.is_failover or self.is_failover != "true" else "true"
         }
 
     def __eq__(self, other):
