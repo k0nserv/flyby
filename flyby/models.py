@@ -9,7 +9,6 @@ class ServiceModel(Model):
     """
     class Meta:
         table_name = "service"
-
     name = UnicodeAttribute(hash_key=True)
     fqdn = UnicodeAttribute()
     healthcheck_path = UnicodeAttribute(default='/')
@@ -37,7 +36,6 @@ class TargetGroupModel(Model):
     """
     class Meta:
         table_name = "target-group"
-
     service_name = UnicodeAttribute(hash_key=True)
     target_group_name = UnicodeAttribute(range_key=True)
     weight = NumberAttribute()
@@ -55,7 +53,6 @@ class BackendModel(Model):
     """
     class Meta:
         table_name = "backend"
-
     service_name = UnicodeAttribute(hash_key=True)
     target_group_name = UnicodeAttribute()
     host = UnicodeAttribute(range_key=True)
