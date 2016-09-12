@@ -49,7 +49,7 @@ def update(fqdn, dynamo_region, dynamo_host, table_root):
 @click.option('--table-root', '-t',
               default='flyby',
               help="The root name of the DynamoDB table flyby stores config in, all tables will start with this")
-@click.option('--log-config', envvar='SLG_LOG_CONFIG', help='python yaml config file', default=None)
+@click.option('--log-config', envvar='FLYBY_LOG_CONFIG', help='python yaml config file', default=None)
 @click.option('-v', '--verbosity',
               help='Logging verbosity',
               type=click.Choice(
