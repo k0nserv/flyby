@@ -16,6 +16,7 @@ class ServiceModel(Model):
     healthcheck_interval = NumberAttribute(default=5000)
     healthcheck_rise = NumberAttribute(default=10)
     healthcheck_fall = NumberAttribute(default=3)
+    failover_pool_fqdn = UnicodeAttribute(default="")
 
     def as_dict(self):
         return {
@@ -25,6 +26,7 @@ class ServiceModel(Model):
             'healthcheck_path': self.healthcheck_path,
             'healthcheck_rise': self.healthcheck_rise,
             'healthcheck_fall': self.healthcheck_fall,
+            'failover_pool_fqdn': self.failover_pool_fqdn,
         }
 
     def __eq__(self, other):
@@ -59,12 +61,10 @@ class BackendModel(Model):
     service_name = UnicodeAttribute(hash_key=True)
     target_group_name = UnicodeAttribute()
     host = UnicodeAttribute(range_key=True)
-    is_failover = UnicodeAttribute()
 
     def as_dict(self):
         return {
             'host': self.host,
-            'is_failover': "false" if not self.is_failover or self.is_failover != "true" else "true"
         }
 
     def __eq__(self, other):
