@@ -7,9 +7,15 @@ services:
       AWS_ACCESS_KEY_ID: foo
       AWS_SECRET_ACCESS_KEY: bar
     ports: ["80:80", "5000:5000"]
-    command: ['flyby', 'start', '--dynamo-host', 'http://moto:8000']
-  moto:
+    command: ['flyby', 'start', '--dynamo-host', 'http://localdynamodb:7777']
+    depends_on:
+    - localdynamodb
+  localdynamodb:
     build:
       context: .
-      dockerfile: MOTO.dockerfile
-    ports: ['8000:8000']
+      dockerfile: LOCALDYNAMODB.dockerfile
+    ports: ["7777:7777"]
+  foo:
+    image: tutum/hello-world
+    ports: ["9000:80"]
+
