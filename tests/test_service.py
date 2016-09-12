@@ -189,6 +189,24 @@ def test_service_register_backend_allows_dns_for_host(dynamodb):
     }
 
 
+<<<<<<< HEAD
+=======
+def test_service_register_backend_allows_dns_for_host(dynamodb):
+    Service.register_service({'name': 'foo', 'fqdn': 'foo.example.com'})
+    Service.register_target_group({'service_name': 'foo', 'target_group_name': 'foo-blue', 'weight': 80})
+    host = 'http://nice.example.com:80'
+    assert Service.register_backend(
+        {
+            'host': host,
+            'service_name': 'foo',
+            'target_group_name': 'foo-blue',
+        }
+    ) == {
+        'host': host,
+    }
+
+
+>>>>>>> 32ac0c6cad4d110e5cb840c9076578b9ddd80062
 def test_service_register_backend_fails_with_missing_port_in_url(dynamodb):
     Service.register_service({'name': 'foo', 'fqdn': 'foo.example.com'})
     with pytest.raises(Service.NotValid) as exec_info:
