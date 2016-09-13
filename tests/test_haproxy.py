@@ -19,18 +19,18 @@ def test_harproxy_update_config(tmpdir, mocker):
                     "target_group_name": "foo-blue",
                     "weight": 80,
                     "backends": [
-                        {'host': '10.0.0.1:80', 'is_failover': "false"},
-                        {'host': '10.0.0.2:80', 'is_failover': "false"},
-                        {'host': '10.0.0.3:80', 'is_failover': "false"}
+                        {'host': '10.0.0.1:80'},
+                        {'host': '10.0.0.2:80'},
+                        {'host': '10.0.0.3:80'}
                     ]
                 },
                 {
                     "target_group_name": "foo-green",
                     "weight": 20,
                     "backends": [
-                        {'host': '10.0.0.1:81', 'is_failover': "false"},
-                        {'host': '10.0.0.2:81', 'is_failover': "false"},
-                        {'host': '10.0.0.3:81', 'is_failover': "false"}
+                        {'host': '10.0.0.1:81'},
+                        {'host': '10.0.0.2:81'},
+                        {'host': '10.0.0.3:81'}
                     ]
                 },
             ]
