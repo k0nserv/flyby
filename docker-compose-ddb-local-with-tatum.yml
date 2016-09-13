@@ -16,9 +16,14 @@ services:
       context: .
       dockerfile: LOCALDYNAMODB.dockerfile
     ports: ["7777:7777"]
-  helloworld:
+  foo:
     build:
       context: .
       dockerfile: HELLOWORLD.dockerfile
     ports: ["9000:80"]
+  bar:
+    build:
+      context: .
+      dockerfile: HELLOWORLD.dockerfile
+    ports: ["9001:80"]
 
