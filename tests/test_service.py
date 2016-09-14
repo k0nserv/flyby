@@ -1,7 +1,6 @@
 import pytest
-from flyby.service import Service
 from operator import itemgetter
-from flyby.service import TargetGroupModel, BackendModel
+from flyby.service import TargetGroupModel, BackendModel, Service
 import string
 import random
 

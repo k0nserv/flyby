@@ -12,15 +12,13 @@ Every minute the load balancer syncs-up and refreshes its configuration when nee
 Demo
 ====
 *Note:* These commands assume you are using a docker-machine environment on `192.168.99.100`, you may need to update the IP address curl-ed to.
-This docker-compose demo uses [moto](https://github.com/spulec/moto) for mocking DynamoDB, however it is possible to use other backends locally.
+
+This docker-compose demo uses [DynamoDBLocal](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html) for mocking DynamoDB, however it is possible to use other backends such as [moto](https://github.com/spulec/moto) locally.
 
 This is a simple scenario of registering a foo example service
 ```
-# Start server with a mocked dynamodb server
+# Start server with a dynamodb local server and a local service
 docker-compose up
-
-# Start an example container
-docker run -e NAME=foo -d -p 9000:80 tutum/hello-world
 
 # Register a new service foo
 curl -X POST -H "Content-Type: application/json" -d '{

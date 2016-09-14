@@ -6,7 +6,12 @@ from flyby.models import ServiceModel, BackendModel, TargetGroupModel
 from flyby.service import Service
 from flyby.server import app
 import logging
+import logging.config
+import time
+import yaml
+
 logger = logging.getLogger(__name__)
+metrics = logging.getLogger('metrics')
 
 
 @click.group()
@@ -15,6 +20,7 @@ def cli():
 
 
 def update(fqdn, dynamo_region, dynamo_host, table_root):
+    start_time = time.time()
     models = [BackendModel, ServiceModel, TargetGroupModel]
     for model in models:
         model.Meta.table_name = "{0}-{1}".format(table_root, model.Meta.table_name)
@@ -26,6 +32,7 @@ def update(fqdn, dynamo_region, dynamo_host, table_root):
             model.create_table(read_capacity_units=1, write_capacity_units=1, wait=True)
     services = Service.query_services()
     Haproxy().update(fqdn=fqdn, services=services)
+    metrics.info('background-refresh.duration {}'.format(time.time() - start_time))
 
 
 @cli.command()
@@ -42,20 +49,30 @@ def update(fqdn, dynamo_region, dynamo_host, table_root):
 @click.option('--table-root', '-t',
               default='flyby',
               help="The root name of the DynamoDB table flyby stores config in, all tables will start with this")
-@click.option('--debug', default=False, help='Debug mode.', is_flag=True)
-def start(debug, fqdn, dynamo_region, dynamo_host, table_root):
+@click.option('--log-config', envvar='FLYBY_LOG_CONFIG', help='python yaml config file', default=None)
+@click.option('-v', '--verbosity',
+              help='Logging verbosity',
+              type=click.Choice(
+                  ['NOTSET', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG']),
+              default='INFO')
+def start(fqdn, dynamo_region, dynamo_host, table_root, log_config, verbosity):
     """
     Starts an APScheduler job to periodically reload HAProxy config as well as run the API to register/deregister
     new services, target groups and backends.
-    :param debug: A debug flag
     :param fqdn: The fully qualified domain name of Flyby - requests coming here will go to the API endpoints
     :param dynamo_region: The AWS region of the DynamoDB tables Flyby stores and reads config in
     :param dynamo_host: The hostname and port to use for DynamoDB connections. Useful for local testing with
     moto or DynamoDB Local.
     :param table_root: The root that will be used for table names in DynamboDB. This will be prefixed to all tables
     created.
+    :param log_config: Location of python yaml config file.
+    :param verbosity: Logging verbosity, defaults to INFO.
     :return:
     """
+    logging.getLogger().setLevel(level=getattr(logging, verbosity))
+    if log_config:
+        with open(log_config, 'r') as conf:
+            logging.config.dictConfig(yaml.load(conf))
     scheduler = BackgroundScheduler(timezone=utc)
     scheduler.add_job(update, 'interval', seconds=10, args=(fqdn, dynamo_region, dynamo_host, table_root))
     scheduler.start()
