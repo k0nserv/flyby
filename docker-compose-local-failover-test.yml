@@ -17,13 +17,9 @@ services:
       dockerfile: LOCALDYNAMODB.dockerfile
     ports: ["7777:7777"]
   foo:
-    build:
-      context: .
-      dockerfile: HELLOWORLD.dockerfile
+    image: tutum/hello-world
     ports: ["9000:80"]
   bar:
-    build:
-      context: .
-      dockerfile: HELLOWORLD.dockerfile
+    image: tutum/hello-world
     ports: ["9001:80"]
 
