@@ -85,6 +85,11 @@ class Service:
         return list(data.values())
 
     @classmethod
+    def list_services(cls):
+        data = [s.as_dict().get('name') for s in ServiceModel.scan()]
+        return {'services': sorted(data)}
+
+    @classmethod
     def register_target_group(cls, target_group_definition):
         valid, errors = cls.validate_target_group(target_group_definition)
         if not valid:

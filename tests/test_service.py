@@ -295,12 +295,21 @@ def test_service_deregister(dynamodb):
         }
     )
     service_description = Service.describe_service('foo')
-    print(service_description)
     assert Service.deregister_service('foo') is True
     with pytest.raises(TargetGroupModel.DoesNotExist):
         TargetGroupModel.get('foo', 'foo-blue')
     with pytest.raises(BackendModel.DoesNotExist):
         BackendModel.get('foo', '10.0.0.3:80')
+
+
+def test_service_list(dynamodb):
+    Service.register_service({'name': 'foo', 'fqdn': 'foo.example.com'})
+    Service.register_service({'name': 'foo2', 'fqdn': 'foo.example.com'})
+    Service.register_service({'name': 'foo3', 'fqdn': 'foo.example.com'})
+    service_descriptions = Service.list_services()
+    assert service_descriptions == {
+        'services': ['foo', 'foo2', 'foo3']
+    }
 
 
 def test_deregister_service_does_not_exist(dynamodb):

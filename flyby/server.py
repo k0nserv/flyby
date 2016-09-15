@@ -39,6 +39,12 @@ def describe_service(service_name):
         return 'Service: {} not currently registered with Flyby.'.format(service_name), 404
 
 
+@app.route("/services", methods=['GET'])
+def list_services():
+    data = Service.list_services()
+    return flask.jsonify(data)
+
+
 @app.route("/target", methods=['POST'])
 def register_target_group():
     try:

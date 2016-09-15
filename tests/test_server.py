@@ -61,6 +61,24 @@ def test_server_describe_service(dynamodb):
     assert json.loads(response.data)['name'] == 'foo'
 
 
+def test_server_list_services(dynamodb):
+    app.test_client().post(
+        '/service',
+        data=json.dumps({'name': 'foo', 'fqdn': 'foo.example.com'})
+    )
+    app.test_client().post(
+        '/service',
+        data=json.dumps({'name': 'foo2', 'fqdn': 'foo.example.com'})
+    )
+    app.test_client().post(
+        '/service',
+        data=json.dumps({'name': 'foo3', 'fqdn': 'foo.example.com'})
+    )
+    response = app.test_client().get('/services')
+    assert response.status_code == 200
+    assert json.loads(response.data)['services'] == ['foo', 'foo2', 'foo3']
+
+
 def test_server_register_target_group(dynamodb):
     app.test_client().post(
         '/service',
