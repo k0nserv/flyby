@@ -86,7 +86,7 @@ class Service:
 
     @classmethod
     def list_services(cls):
-        data = [s.as_dict().get('name') for s in ServiceModel.scan()]
+        data = [s.name for s in ServiceModel.scan()]
         return {'services': sorted(data)}
 
     @classmethod
