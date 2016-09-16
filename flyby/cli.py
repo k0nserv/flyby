@@ -5,6 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from flyby.models import ServiceModel, BackendModel, TargetGroupModel
 from flyby.service import Service
 from flyby.server import app
+import threading
 import logging
 import logging.config
 import time
@@ -33,6 +34,7 @@ def update(fqdn, dynamo_region, dynamo_host, table_root):
     services = Service.query_services()
     Haproxy().update(fqdn=fqdn, services=services)
     metrics.info('background-refresh.duration {}'.format(time.time() - start_time))
+    metrics.info('active-thread-count {}'.format(threading.active_count()))
 
 
 @cli.command()

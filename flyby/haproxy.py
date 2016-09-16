@@ -1,10 +1,12 @@
 import logging
 import subprocess
 import _thread
+import time
 from jinja2 import Environment, PackageLoader
 
 
 logger = logging.getLogger("haproxy")
+metrics = logging.getLogger("metrics")
 
 
 class Haproxy:
@@ -36,8 +38,10 @@ class Haproxy:
     def _run(self):
         def _wait_pid(p):
             if p:
+                start_time = time.time()
                 pid = p.pid
                 p.wait()
+                metrics.info('haproxy-shutdown.duration {}'.format(time.time() - start_time))
                 logger.info("HAProxy(PID:{}) has been terminated".format(str(pid)))
 
         if Haproxy.process:
