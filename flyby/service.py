@@ -27,6 +27,26 @@ class Service:
         return service.as_dict()
 
     @classmethod
+    def update_service(cls, service_name, update_def):
+
+        try:
+            service = ServiceModel.get(service_name)
+        except ServiceModel.DoesNotExist:
+            raise Service.DoesNotExist(service_name)
+
+        for k, v in update_def.items():
+            if k in service.attribute_values.keys():
+                service.attribute_values[k] = v
+
+        service_dict = service.as_dict()
+        valid, errors = cls.validate_service(service_dict)
+        if not valid:
+            raise cls.NotValid(errors)
+
+        service.save()
+        return service.as_dict()
+
+    @classmethod
     def deregister_service(cls, name):
         try:
             service = ServiceModel.get(name)

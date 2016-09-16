@@ -13,7 +13,47 @@ def test_service_register_service(dynamodb):
         'healthcheck_path': '/',
         'healthcheck_interval': 5000,
         'healthcheck_rise': 10,
-        'healthcheck_fall': 3
+        'healthcheck_fall': 3,
+        'failover_pool_fqdn': ''
+    }
+
+
+def test_service_register_service_with_failover(dynamodb):
+    response = Service.register_service(
+        {
+            'name': 'foo',
+            'fqdn': 'foo.example.com',
+            'failover_pool_fqdn': 'failover.example.com'
+        })
+    assert response == {
+        'name': 'foo',
+        'fqdn': 'foo.example.com',
+        'healthcheck_path': '/',
+        'healthcheck_interval': 5000,
+        'healthcheck_rise': 10,
+        'healthcheck_fall': 3,
+        'failover_pool_fqdn': 'failover.example.com'
+    }
+
+
+def test_service_update_service(dynamodb):
+    Service.register_service({'name': 'foo', 'fqdn': 'foo.example.com'})
+    response = Service.update_service('foo', {
+        'failover_pool_fqdn': 'failover.example.com',
+        'fqdn': 'newfoo.example.com',
+        'healthcheck_path': '/new',
+        'healthcheck_interval': 4000,
+        'healthcheck_rise': 8,
+        'healthcheck_fall': 2
+    })
+    assert response == {
+        'name': 'foo',
+        'fqdn': 'newfoo.example.com',
+        'healthcheck_path': '/new',
+        'healthcheck_interval': 4000,
+        'healthcheck_rise': 8,
+        'healthcheck_fall': 2,
+        'failover_pool_fqdn': 'failover.example.com'
     }
 
 
@@ -23,7 +63,7 @@ def test_service_describe(dynamodb):
         {
             'service_name': 'foo',
             'target_group_name': 'foo-blue',
-            'weight': 80,
+            'weight': 80
         }
     )
     Service.register_target_group(
@@ -37,21 +77,21 @@ def test_service_describe(dynamodb):
         {
             'host': '10.0.0.1:80',
             'service_name': 'foo',
-            'target_group_name': 'foo-blue',
+            'target_group_name': 'foo-blue'
         }
     )
     Service.register_backend(
         {
             'host': '10.0.0.1:81',
             'service_name': 'foo',
-            'target_group_name': 'foo-green',
+            'target_group_name': 'foo-green'
         }
     )
     Service.register_backend(
         {
             'host': '10.0.0.2:80',
             'service_name': 'foo',
-            'target_group_name': 'foo-green',
+            'target_group_name': 'foo-green'
         }
     )
     assert Service.describe_service('foo') == {
@@ -61,6 +101,7 @@ def test_service_describe(dynamodb):
         'healthcheck_interval': 5000,
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
+        'failover_pool_fqdn': '',
         'target_groups': [
             {
                 "target_group_name": "foo-blue",
@@ -167,25 +208,10 @@ def test_service_register_backend(dynamodb):
         {
             'host': '10.0.0.1:80',
             'service_name': 'foo',
-            'target_group_name': 'foo-blue',
+            'target_group_name': 'foo-blue'
         }
     ) == {
-               'host': '10.0.0.1:80',
-           }
-
-
-def test_service_register_backend_allows_dns_for_host(dynamodb):
-    Service.register_service({'name': 'foo', 'fqdn': 'foo.example.com'})
-    Service.register_target_group({'service_name': 'foo', 'target_group_name': 'foo-blue', 'weight': 80})
-    host = 'http://nice.example.com:80'
-    assert Service.register_backend(
-        {
-            'host': host,
-            'service_name': 'foo',
-            'target_group_name': 'foo-blue',
-        }
-    ) == {
-        'host': host,
+        'host': '10.0.0.1:80'
     }
 
 
@@ -197,10 +223,10 @@ def test_service_register_backend_allows_dns_for_host(dynamodb):
         {
             'host': host,
             'service_name': 'foo',
-            'target_group_name': 'foo-blue',
+            'target_group_name': 'foo-blue'
         }
     ) == {
-        'host': host,
+        'host': host
     }
 
 
@@ -267,7 +293,7 @@ def test_service_register_does_not_exist(dynamodb):
             {
                 'host': '10.0.0.3:80',
                 'service_name': 'foo',
-                'target_group_name': 'foo-blue',
+                'target_group_name': 'foo-blue'
             }
         )
 
@@ -279,7 +305,7 @@ def test_service_register_target_group_does_not_exist(dynamodb):
             {
                 'host': '10.0.0.3:80',
                 'service_name': 'foo',
-                'target_group_name': 'foo-blue',
+                'target_group_name': 'foo-blue'
             }
         )
 
@@ -291,7 +317,7 @@ def test_service_deregister(dynamodb):
         {
             'host': '10.0.0.3:80',
             'service_name': 'foo',
-            'target_group_name': 'foo-blue',
+            'target_group_name': 'foo-blue'
         }
     )
     service_description = Service.describe_service('foo')

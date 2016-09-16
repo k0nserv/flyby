@@ -17,6 +17,15 @@ def register_service():
     return flask.jsonify(data)
 
 
+@app.route("/service/<service_name>", methods=['PUT'])
+def update_service(service_name):
+    try:
+        data = Service.update_service(service_name, flask.request.get_json(force=True))
+        return flask.jsonify(data)
+    except Service.DoesNotExist:
+        return 'Service: {} not currently registered with Flyby.'.format(service_name), 404
+
+
 @app.route("/service/<service_name>", methods=['DELETE'])
 def deregister_service(service_name):
     try:

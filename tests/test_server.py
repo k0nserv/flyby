@@ -17,6 +17,21 @@ def test_server_register_service(dynamodb):
     assert json.loads(response.data)['name'] == 'foo'
 
 
+def test_server_update_service(dynamodb):
+    # Setup service to test update on
+    app.test_client().post(
+        '/service',
+        data=json.dumps({'name': 'foo', 'fqdn': 'foo.example.com'})
+    )
+
+    response = app.test_client().put(
+        '/service/foo',
+        data=json.dumps({'name': 'foo', 'fqdn': 'bar.example.com'})
+    )
+    assert response.status_code == 200
+    assert json.loads(response.data)['fqdn'] == 'bar.example.com'
+
+
 def test_server_deregister_service(dynamodb):
     app.test_client().post(
         '/service',
