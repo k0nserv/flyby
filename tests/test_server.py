@@ -18,8 +18,7 @@ def test_server_register_service(dynamodb):
 
 
 def test_server_update_service(dynamodb):
-
-    # Setup service to tst update on
+    # Setup service to test update on
     app.test_client().post(
         '/service',
         data=json.dumps({'name': 'foo', 'fqdn': 'foo.example.com'})
