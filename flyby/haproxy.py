@@ -17,10 +17,11 @@ class Haproxy:
         self.config_path = config_path
         self.command = ['/usr/sbin/haproxy', '-f', config_path, '-db', '-q']
 
-    def update(self, services, fqdn="flyby.example.com"):
+    def update(self, services, fqdn="flyby.example.com", resolvers=None):
+        resolvers = resolvers if resolvers else []
         env = Environment(loader=PackageLoader('flyby', 'config'))
         template = env.get_template('haproxy.cfg.j2')
-        c = template.render(fqdn=fqdn, services=services)
+        c = template.render(fqdn=fqdn, services=services, resolvers=resolvers)
         if self.config != c:
             self.config = c
             self._run()

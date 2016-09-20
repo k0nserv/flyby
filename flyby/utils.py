@@ -5,14 +5,38 @@ import re
 class ValidHost(Validator):
 
     def __init__(self):
-        self.err_message = "Not a valid host name"
+        self.err_message = "Not a valid host"
         self.not_message = ""
-        self.compiled_ip = re.compile('\d+.\d+.\d+.\d+:\d+')
+        self.compiled_ip = re.compile('\d+.\d+.\d+.\d+')
 
     def __call__(self, value):
         return self.compiled_ip.match(value) or self.is_valid_dns(value)
 
     def is_valid_dns(self, value):
+
+        if len(value) > 255:
+            self.err_message = "Url is greater than the 255 byte limit"
+            return False
+
+        return self.segments_are_valid(value)
+
+    def segments_are_valid(self, value):
+        for s in value.split("."):
+            if len(s) > 63:
+                self.err_message = "URL segment too long: {0}".format(s)
+                return False
+
+        return True
+
+
+class ValidHostWithPort(ValidHost):
+
+    def __init__(self):
+        super().__init__()
+        self.compiled_ip = re.compile('\d+.\d+.\d+.\d+:\d+')
+
+    def is_valid_dns(self, value):
+        """Overrides base class definition"""
         host, port = value.split(":")[-2:]
         if not self.check_port(port):
             return False
@@ -40,11 +64,3 @@ class ValidHost(Validator):
 
         self.err_message = "Host has invalid port number"
         return False
-
-    def segments_are_valid(self, value):
-        for s in value.split("."):
-            if len(s) > 63:
-                self.err_message = "URL segment too long: {0}".format(s)
-                return False
-
-        return True

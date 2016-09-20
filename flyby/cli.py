@@ -2,7 +2,7 @@ import click
 from pytz import utc
 from flyby.haproxy import Haproxy
 from apscheduler.schedulers.background import BackgroundScheduler
-from flyby.models import ServiceModel, BackendModel, TargetGroupModel
+from flyby.models import ServiceModel, BackendModel, TargetGroupModel, ResolverModel
 from flyby.service import Service
 from flyby.server import app
 import threading
@@ -22,7 +22,7 @@ def cli():
 
 def update(fqdn, dynamo_region, dynamo_host, table_root):
     start_time = time.time()
-    models = [BackendModel, ServiceModel, TargetGroupModel]
+    models = [BackendModel, ServiceModel, TargetGroupModel, ResolverModel]
     for model in models:
         model.Meta.table_name = "{0}-{1}".format(table_root, model.Meta.table_name)
         model.Meta.region = dynamo_region
@@ -31,8 +31,9 @@ def update(fqdn, dynamo_region, dynamo_host, table_root):
         if not model.exists():
             logger.info("Creating {} table".format(model.Meta.table_name))
             model.create_table(read_capacity_units=1, write_capacity_units=1, wait=True)
+    resolvers = Service.query_resolvers()
     services = Service.query_services()
-    Haproxy().update(fqdn=fqdn, services=services)
+    Haproxy().update(fqdn=fqdn, resolvers=resolvers, services=services)
     metrics.info('background-refresh.duration {}'.format(time.time() - start_time))
     metrics.info('active-thread-count {}'.format(threading.active_count()))
 

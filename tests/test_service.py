@@ -14,7 +14,8 @@ def test_service_register_service(dynamodb):
         'healthcheck_interval': 5000,
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
-        'failover_pool_fqdn': ''
+        'failover_pool_fqdn': '',
+        'dns_resolver': ''
     }
 
 
@@ -23,7 +24,7 @@ def test_service_register_service_with_failover(dynamodb):
         {
             'name': 'foo',
             'fqdn': 'foo.example.com',
-            'failover_pool_fqdn': 'failover.example.com'
+            'failover_pool_fqdn': 'failover.example.com:80'
         })
     assert response == {
         'name': 'foo',
@@ -32,14 +33,35 @@ def test_service_register_service_with_failover(dynamodb):
         'healthcheck_interval': 5000,
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
-        'failover_pool_fqdn': 'failover.example.com'
+        'failover_pool_fqdn': 'failover.example.com:80',
+        'dns_resolver': ''
+    }
+
+
+def test_service_register_service_with_dns_resolver(dynamodb):
+    response = Service.register_service(
+        {
+            'name': 'foo',
+            'fqdn': 'foo.example.com',
+            'dns_resolver': 'dnsmasq'
+        })
+    assert response == {
+        'name': 'foo',
+        'fqdn': 'foo.example.com',
+        'healthcheck_path': '/',
+        'healthcheck_interval': 5000,
+        'healthcheck_rise': 10,
+        'healthcheck_fall': 3,
+        'failover_pool_fqdn': '',
+        'dns_resolver': 'dnsmasq'
     }
 
 
 def test_service_update_service(dynamodb):
     Service.register_service({'name': 'foo', 'fqdn': 'foo.example.com'})
     response = Service.update_service('foo', {
-        'failover_pool_fqdn': 'failover.example.com',
+        'failover_pool_fqdn': 'failover.example.com:80',
+        'dns_resolver': 'dnsmasq',
         'fqdn': 'newfoo.example.com',
         'healthcheck_path': '/new',
         'healthcheck_interval': 4000,
@@ -53,12 +75,18 @@ def test_service_update_service(dynamodb):
         'healthcheck_interval': 4000,
         'healthcheck_rise': 8,
         'healthcheck_fall': 2,
-        'failover_pool_fqdn': 'failover.example.com'
+        'failover_pool_fqdn': 'failover.example.com:80',
+        'dns_resolver': 'dnsmasq'
     }
 
 
 def test_service_describe(dynamodb):
-    Service.register_service({'name': 'foo', 'fqdn': 'foo.example.com'})
+    Service.register_service({
+        'name': 'foo',
+        'fqdn': 'foo.example.com',
+        'dns_resolver': 'dnsmasq',
+        'failover_pool_fqdn': 'failover.example.com:80'
+    })
     Service.register_target_group(
         {
             'service_name': 'foo',
@@ -101,7 +129,8 @@ def test_service_describe(dynamodb):
         'healthcheck_interval': 5000,
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
-        'failover_pool_fqdn': '',
+        'failover_pool_fqdn': 'failover.example.com:80',
+        'dns_resolver': 'dnsmasq',
         'target_groups': [
             {
                 "target_group_name": "foo-blue",
@@ -140,7 +169,8 @@ def test_service_query_services(dynamodb):
     bar = Service.register_service({'name': 'bar', 'fqdn': 'bar.example.com'})
     baz = Service.register_service({'name': 'baz', 'fqdn': 'baz.example.com'})
     assert sorted(Service.query_services(), key=itemgetter('name')) == sorted(
-        [foo, bar, baz], key=itemgetter('name'))
+        [foo, bar, baz], key=itemgetter('name')
+        )
 
 
 def test_service_create_not_valid(dynamodb):
@@ -332,3 +362,25 @@ def test_service_deregister(dynamodb):
 def test_deregister_service_does_not_exist(dynamodb):
     with pytest.raises(Service.DoesNotExist):
         Service.deregister_service('foo')
+
+
+def test_service_register_resolver(dynamodb):
+    response = Service.register_resolver({'resolver_name': 'dns', 'nameserver_address': 'dnsmasq'})
+    assert response == {
+        'hold_valid': '30s',
+        'nameserver_address': 'dnsmasq',
+        'nameserver_port': 53,
+        'resolve_retries': 10,
+        'timeout_retry': '5s',
+        'name': 'dns'
+        }
+
+
+def test_service_register_resolver_space_in_resolver_name(dynamodb):
+    with pytest.raises(Service.NotValid):
+        Service.register_resolver({'resolver_name': 'a space', 'nameserver_address': 'dnsmasq'})
+
+
+def test_deregister_resolver(dynamodb):
+    Service.register_resolver({'resolver_name': 'dns', 'nameserver_address': 'dnsmasq'})
+    assert Service.deregister_resolver('dns') is True

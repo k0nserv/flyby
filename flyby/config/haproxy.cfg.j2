@@ -1,72 +1,83 @@
 global
-    log         127.0.0.1 local2
+  log         127.0.0.1 local2
 
-    chroot      /var/lib/haproxy
-    pidfile     /var/run/haproxy.pid
-    maxconn     4000
-    user        haproxy
-    group       haproxy
-    daemon
+  chroot      /var/lib/haproxy
+  pidfile     /var/run/haproxy.pid
+  maxconn     4000
+  user        haproxy
+  group       haproxy
+  daemon
 
-    # turn on stats unix socket
-    stats socket /var/lib/haproxy/stats
+  # turn on stats unix socket
+  stats socket /var/lib/haproxy/stats
 
 defaults
-    mode                    http
-    log                     global
-    option                  httplog
-    option                  dontlognull
-    option http-server-close
-    option forwardfor       except 127.0.0.0/8
-    option                  redispatch
-    retries                 3
-    timeout http-request    10s
-    timeout queue           1m
-    timeout connect         10s
-    timeout client          1m
-    timeout server          1m
-    timeout http-keep-alive 10s
-    timeout check           10s
-    maxconn                 3000
+  mode                    http
+  log                     global
+  option                  httplog
+  option                  dontlognull
+  option http-server-close
+  option forwardfor       except 127.0.0.0/8
+  option                  redispatch
+  retries                 3
+  timeout http-request    10s
+  timeout queue           1m
+  timeout connect         10s
+  timeout client          1m
+  timeout server          1m
+  timeout http-keep-alive 10s
+  timeout check           10s
+  maxconn                 3000
 
+{# DNS Resolvers check dns entries *AFTER* startup
+   This is critical as otherwise HAProxy will cache the resolved name *for all time*
+   A DNS entry must be resolvable at startup or config parse time
+   This resolver uses the dnsmasq container which gives us
+   Platform and environment independence.
+-#}
+{% for resolver in resolvers -%}
+resolvers {{ resolver.name }}
+  nameserver            nameserver {{ resolver.nameserver_address }}:{{ resolver.nameserver_port }}
+  resolve_retries       {{ resolver.resolve_retries }}
+  timeout retry         {{ resolver.timeout_retry }}
+  hold valid            {{ resolver.hold_valid}}
+{%- endfor %}
 
-# Template Customization
+{# Template Customization -#}
 frontend http-in
-    bind *:80
+  bind *:80
 
-    acl flyby-admin-acl hdr(host) -i {{ fqdn }}
-    use_backend flyby-admin if flyby-admin-acl
+  acl flyby-admin-acl hdr(host) -i {{ fqdn }}
+  use_backend flyby-admin if flyby-admin-acl
 
-    {% for service in services %}
-    acl {{ service.name }}-aclrule hdr(host) {{ service.fqdn }}
-    use_backend {{ service.name }}-cluster if {{ service.name }}-aclrule
-    {% endfor %}
+  {% for service in services -%}
+  acl {{ service.name }}-aclrule hdr(host) {{ service.fqdn }}
+  use_backend {{ service.name }}-cluster if {{ service.name }}-aclrule
+  {%- endfor %}
 
-    stats enable
-    stats auth admin:admin
-    stats uri /haproxy_stats
+  stats enable
+  stats auth admin:admin
+  stats uri /haproxy_stats
 
 backend flyby-admin
-    option httpchk GET /
-    reqrep ^([^\ :]*)\ /flyby/(.*)     \1\ /\2
-    balance leastconn
-    option httpclose
-    option forwardfor
-    server admin 127.0.0.1:5000 check inter 10s
+  option httpchk GET /
+  balance leastconn
+  option httpclose
+  option forwardfor
+  server admin 127.0.0.1:5000 check inter 10s
 
-{% for service  in services %}
+{% for service  in services -%}
 backend {{ service.name }}-cluster
-    option httpchk GET {{ service.healthcheck_path }}
-    
-    balance roundrobin
-    option httpclose
-    option forwardfor
-    {% for target in service.target_groups %}
-    {% for backend in target.backends %}
-        server {{ service.name}}-{{target.target_group_name}}{{loop.index}} {{ backend.host }} check inter 10s weight {{target.weight}}
-    {% endfor %}
-    {% if service.failover_pool_fqdn != "" %}
-        server {{ service.name}}-{{target.target_group_name}}-backup {{ service.failover_pool_fqdn }} backup
-    {% endif %}
-    {% endfor %}
+  option httpchk GET {{ service.healthcheck_path }}
+  balance roundrobin
+  option httpclose
+  option forwardfor
+  {% for target in service.target_groups -%}
+    {% for backend in target.backends -%}
+  server {{ service.name}}-{{target.target_group_name}}{{loop.index}} {{ backend.host }} check inter 10s weight {{target.weight}} {% if service.dns_resolver != "" %} resolvers {{ service.dns_resolver }} {% endif %}
+    {%- endfor %}
+    {% if service.failover_pool_fqdn != "" -%}
+  server {{ service.name}}-{{target.target_group_name}}-backup {{ service.failover_pool_fqdn }} backup check inter 10s {% if service.dns_resolver != "" %} resolvers {{ service.dns_resolver }} {% endif %}
+    {%- endif %}
+  {%- endfor %}
 {% endfor %}

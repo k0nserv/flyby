@@ -84,6 +84,29 @@ def deregister_backend(service_name, target_group_name, host):
     return 'OK'
 
 
+@app.route("/resolver", methods=["POST"])
+def register_dns_resolver():
+    data = Service.register_resolver(flask.request.get_json(force=True))
+    return flask.jsonify(data)
+
+
+@app.route("/resolver/<resolver_name>", methods=["DELETE"])
+def deregister_resolver(resolver_name):
+    try:
+        Service.deregister_resolver(resolver_name)
+        return 'OK'
+    except Service.DoesNotExist:
+        return 'Resolver: {} not currently registered with Flyby.'.format(resolver_name), 404
+
+
+@app.route("/resolver/<resolver_name>", methods=["GET"])
+def describe_resolver(resolver_name):
+    try:
+        return flask.jsonify(Service.describe_resolver(resolver_name))
+    except Service.DoesNotExist:
+        return 'Resolver: {} not currently registered with Flyby.'.format(resolver_name), 404
+
+
 @app.route("/haproxy/config", methods=['GET'])
 def haproxy_config():
     return flask.Response(Haproxy().config, mimetype='application/txt')

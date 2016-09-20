@@ -1,16 +1,25 @@
 version: '2'
 services:
+  dnsmasq:
+    image: andyshinn/dnsmasq:2.76
+    expose:
+    - "53/tcp"
+    - "53/udp"
+    cap_add:
+      - NET_ADMIN
+    command: ['--log-facility=-', '--log-queries']
   flyby:
     build: .
     environment:
       AWS_DEFAULT_REGION: 'eu-west-1'
       AWS_ACCESS_KEY_ID: foo
       AWS_SECRET_ACCESS_KEY: bar
-    links: [localdynamodb]
+    links: [localdynamodb, dnsmasq]
     ports: ["80:80", "5000:5000"]
     command: ['flyby', 'start', '--dynamo-host', 'http://localdynamodb:7777']
     depends_on:
     - localdynamodb
+    - dnsmasq
   localdynamodb:
     build:
       context: .
@@ -22,4 +31,3 @@ services:
   bar:
     image: tutum/hello-world
     ports: ["9001:80"]
-
