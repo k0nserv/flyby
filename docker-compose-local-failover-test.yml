@@ -1,5 +1,6 @@
 version: '2'
 services:
+
   dnsmasq:
     image: andyshinn/dnsmasq:2.76
     expose:
@@ -8,6 +9,7 @@ services:
     cap_add:
       - NET_ADMIN
     command: ['--log-facility=-', '--log-queries']
+
   flyby:
     build: .
     environment:
@@ -21,14 +23,17 @@ services:
     depends_on:
     - localdynamodb
     - dnsmasq
+
   localdynamodb:
     build:
       context: .
       dockerfile: LOCALDYNAMODB.dockerfile
     ports: ["7777:7777"]
+
   foo:
     image: tutum/hello-world
     ports: ["9000:80"]
+
   bar:
     image: tutum/hello-world
     ports: ["9001:80"]
