@@ -14,9 +14,10 @@ services:
       AWS_DEFAULT_REGION: 'eu-west-1'
       AWS_ACCESS_KEY_ID: foo
       AWS_SECRET_ACCESS_KEY: bar
+      FLYBY_DYNAMO_HOST: 'http://localdynamodb:7777'
     links: [localdynamodb, dnsmasq]
     ports: ["80:80", "5000:5000"]
-    command: ['flyby', 'start', '--dynamo-host', 'http://localdynamodb:7777']
+    command: ['flyby', 'start']
     depends_on:
     - localdynamodb
     - dnsmasq

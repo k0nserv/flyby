@@ -40,19 +40,25 @@ def update(fqdn, dynamo_region, dynamo_host, table_root):
 
 @cli.command()
 @click.option('--fqdn', '-f',
-              envvar="FB_FQDN",
+              envvar="FLYBY_FQDN",
               default="flyby.example.com",
               help="Flyby's fully qualified domain name. ie flyby.example.com")
 @click.option('--dynamo-region', '-r',
+              envvar="FLYBY_DYNAMO_REGION",
               default='eu-west-1',
               help="The AWS region of the DynamoDB tables Flyby stores config in")
 @click.option('--dynamo-host', '-d',
+              envvar="FLYBY_DYNAMO_HOST",
               default=None,
               help="The host to use for DynamoDB connections, used for local testing or proxying")
 @click.option('--table-root', '-t',
+              envvar="FLYBY_TABLE_ROOT",
               default='flyby',
               help="The root name of the DynamoDB table flyby stores config in, all tables will start with this")
-@click.option('--log-config', envvar='FLYBY_LOG_CONFIG', help='python yaml config file', default=None)
+@click.option('--log-config',
+              envvar='FLYBY_LOG_CONFIG',
+              default=None,
+              help='python yaml config file')
 @click.option('-v', '--verbosity',
               help='Logging verbosity',
               type=click.Choice(
