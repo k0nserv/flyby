@@ -11,10 +11,11 @@ def number_of_workers():
 class StandaloneApplication(gunicorn.app.base.BaseApplication):
 
     def __init__(self, app, options=None):
-        self.options = options or {
+        self.options = {
             'bind': '%s:%s' % ('0.0.0.0', '5000'),
             'workers': number_of_workers()
             }
+        self.options.update(options or {})
         self.application = app
         super(StandaloneApplication, self).__init__()
 
