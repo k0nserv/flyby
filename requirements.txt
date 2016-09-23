@@ -5,3 +5,4 @@ Jinja2==2.8
 pynamodb==1.5.3
 validator.py==1.2.5
 pyyaml==3.12
+gunicorn==19.6.0
