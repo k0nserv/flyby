@@ -68,7 +68,8 @@ backend flyby-admin
 
 {% for service  in services -%}
 backend {{ service.name }}-cluster
-  option httpchk GET {{ service.healthcheck_path }}
+  option httpchk GET {{ service.healthcheck_path }} HTTP/1.1\r\nHost:\ {{ service.fqdn }}
+  {% if service.failover_pool_use_https %} http-request set-header X-Forwarded-Proto https {% endif %}
   balance roundrobin
   option httpclose
   option forwardfor
@@ -77,7 +78,7 @@ backend {{ service.name }}-cluster
   server {{ service.name}}-{{target.target_group_name}}{{loop.index}} {{ backend.host }} check inter 10s weight {{target.weight}} {% if service.dns_resolver != "" %} resolvers {{ service.dns_resolver }} {% endif %}
     {% endfor %}
     {% if service.failover_pool_fqdn != "" -%}
-  server {{ service.name}}-{{target.target_group_name}}-backup {{ service.failover_pool_fqdn }} backup check inter 10s {% if service.dns_resolver != "" %} resolvers {{ service.dns_resolver }} {% endif %}
+  server {{ service.name}}-{{target.target_group_name}}-backup {{ service.failover_pool_fqdn }} backup check inter 10s {% if service.dns_resolver != "" %} resolvers {{ service.dns_resolver }} {% endif %} {% if service.failover_pool_ssl_verify_none %} ssl verify none {% endif %}
     {%- endif %}
   {% endfor %}
 {% endfor %}

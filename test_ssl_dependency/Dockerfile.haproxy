@@ -1,0 +1,3 @@
+FROM haproxy:1.5
+COPY test_ssl_dependency/haproxy.cert.pem /cert.pem
+COPY test_ssl_dependency/haproxy.cfg /usr/local/etc/haproxy/haproxy.cfg

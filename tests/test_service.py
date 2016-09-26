@@ -15,46 +15,9 @@ def test_service_register_service(dynamodb):
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
         'failover_pool_fqdn': '',
+        'failover_pool_ssl_verify_none': 0,
+        'failover_pool_use_https': 0,
         'dns_resolver': ''
-    }
-
-
-def test_service_register_service_with_failover(dynamodb):
-    response = Service.register_service(
-        {
-            'name': 'foo',
-            'fqdn': 'foo.example.com',
-            'failover_pool_fqdn': 'failover.example.com'
-        })
-    assert response == {
-        'name': 'foo',
-        'fqdn': 'foo.example.com',
-        'healthcheck_path': '/',
-        'healthcheck_interval': 5000,
-        'healthcheck_rise': 10,
-        'healthcheck_fall': 3,
-        'failover_pool_fqdn': 'failover.example.com'
-    }
-
-
-def test_service_update_service(dynamodb):
-    Service.register_service({'name': 'foo', 'fqdn': 'foo.example.com'})
-    response = Service.update_service('foo', {
-        'failover_pool_fqdn': 'failover.example.com',
-        'fqdn': 'newfoo.example.com',
-        'healthcheck_path': '/new',
-        'healthcheck_interval': 4000,
-        'healthcheck_rise': 8,
-        'healthcheck_fall': 2
-    })
-    assert response == {
-        'name': 'foo',
-        'fqdn': 'newfoo.example.com',
-        'healthcheck_path': '/new',
-        'healthcheck_interval': 4000,
-        'healthcheck_rise': 8,
-        'healthcheck_fall': 2,
-        'failover_pool_fqdn': 'failover.example.com'
     }
 
 
@@ -73,6 +36,30 @@ def test_service_register_service_with_failover(dynamodb):
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
         'failover_pool_fqdn': 'failover.example.com:80',
+        'failover_pool_ssl_verify_none': 0,
+        'failover_pool_use_https': 0,
+        'dns_resolver': ''
+    }
+
+
+def test_service_register_service_with_https_failover(dynamodb):
+    response = Service.register_service(
+        {
+            'name': 'foo',
+            'fqdn': 'foo.example.com',
+            'failover_pool_fqdn': 'failover.example.com:80',
+            'failover_pool_use_https': 1
+        })
+    assert response == {
+        'name': 'foo',
+        'fqdn': 'foo.example.com',
+        'healthcheck_path': '/',
+        'healthcheck_interval': 5000,
+        'healthcheck_rise': 10,
+        'healthcheck_fall': 3,
+        'failover_pool_fqdn': 'failover.example.com:80',
+        'failover_pool_ssl_verify_none': 0,
+        'failover_pool_use_https': 1,
         'dns_resolver': ''
     }
 
@@ -92,6 +79,8 @@ def test_service_register_service_with_dns_resolver(dynamodb):
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
         'failover_pool_fqdn': '',
+        'failover_pool_ssl_verify_none': 0,
+        'failover_pool_use_https': 0,
         'dns_resolver': 'dnsmasq'
     }
 
@@ -115,6 +104,8 @@ def test_service_update_service(dynamodb):
         'healthcheck_rise': 8,
         'healthcheck_fall': 2,
         'failover_pool_fqdn': 'failover.example.com:80',
+        'failover_pool_ssl_verify_none': 0,
+        'failover_pool_use_https': 0,
         'dns_resolver': 'dnsmasq'
     }
 
@@ -124,7 +115,9 @@ def test_service_describe(dynamodb):
         'name': 'foo',
         'fqdn': 'foo.example.com',
         'dns_resolver': 'dnsmasq',
-        'failover_pool_fqdn': 'failover.example.com:80'
+        'failover_pool_fqdn': 'failover.example.com:80',
+        'failover_pool_ssl_verify_none': 1,
+        'failover_pool_use_https': 1,
     })
     Service.register_target_group(
         {
@@ -169,6 +162,8 @@ def test_service_describe(dynamodb):
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
         'failover_pool_fqdn': 'failover.example.com:80',
+        'failover_pool_ssl_verify_none': 1,
+        'failover_pool_use_https': 1,
         'dns_resolver': 'dnsmasq',
 
         'target_groups': [

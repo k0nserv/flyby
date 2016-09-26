@@ -50,5 +50,17 @@ curl -X GET "http://192.168.99.100:5000/haproxy/config"
 # Local Failover Testing
 
 A Docker compose file `docker-compose-local-failover-test.yml` is provided which will set up an environment with 2 backends: foo and bar.
-run the script `setup_test_foo.sh` after your docker compose has finished to provision the configuration.
-add a host entry for foo.example.com to localhost and you should be able to test failover.
+* foo.example.com will use the 'foo' backend but failover to the 'bar' backend if 'foo' is not available
+
+Run the script `setup_test_foo_bar.sh` after your docker compose has finished to provision the configuration.
+
+Add a host entries for foo.example.com to localhost and you should be able to test failover.
+
+# Local Failover to HTTPS endpoint Testing
+
+A Docker compose file `docker-compose-local-ssl-failover-test.yml` is provided which will set up an environment with 2 backends: foo and baz.
+* foo.example.com will use the 'foo' backend but failover to the HTTPS 'baz' backend if 'foo' is not available
+
+Run the script `setup_test_foo_baz.sh` after your docker compose has finished to provision the configuration. The failover configuration includes setting 'failover_pool_ssl_verify_none' to allow 'baz' to expose a self-signed certificate.
+
+Add a host entries for foo.example.com to localhost and you should be able to test failover.

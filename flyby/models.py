@@ -1,6 +1,7 @@
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute
 from pynamodb.attributes import NumberAttribute
+from pynamodb.attributes import BooleanAttribute
 
 
 class ServiceModel(Model):
@@ -16,6 +17,8 @@ class ServiceModel(Model):
     healthcheck_rise = NumberAttribute(default=10)
     healthcheck_fall = NumberAttribute(default=3)
     failover_pool_fqdn = UnicodeAttribute(default="")
+    failover_pool_use_https = BooleanAttribute(default=0)
+    failover_pool_ssl_verify_none = BooleanAttribute(default=0)
     dns_resolver = UnicodeAttribute(default="")
 
     def as_dict(self):
@@ -27,6 +30,8 @@ class ServiceModel(Model):
             'healthcheck_rise': self.healthcheck_rise,
             'healthcheck_fall': self.healthcheck_fall,
             'failover_pool_fqdn': self.failover_pool_fqdn,
+            'failover_pool_use_https': self.failover_pool_use_https,
+            'failover_pool_ssl_verify_none': self.failover_pool_ssl_verify_none,
             'dns_resolver': self.dns_resolver,
         }
 
