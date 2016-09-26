@@ -1,5 +1,8 @@
 from validator import Validator
 import re
+from datetime import datetime, timedelta
+import ntplib
+import logging
 
 
 class ValidHost(Validator):
@@ -48,3 +51,20 @@ class ValidHost(Validator):
                 return False
 
         return True
+
+
+class NTP(object):
+    _ntp_client = ntplib.NTPClient()
+    _last_updated = None
+    _current_offset = 0
+
+    @classmethod
+    def get_server_time(cls):
+        now = datetime.now()
+        if not cls._last_updated or (now > (cls._last_updated + timedelta(seconds=300))):
+            cls._last_updated = now
+            try:
+                cls._current_offset = cls._ntp_client.request('pool.ntp.org').offset
+            except Exception as e:
+                logging.exception(e)
+        return datetime.now() - timedelta(milliseconds=cls._current_offset)

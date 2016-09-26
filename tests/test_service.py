@@ -3,6 +3,8 @@ from operator import itemgetter
 from flyby.service import TargetGroupModel, BackendModel, Service
 import string
 import random
+from freezegun import freeze_time
+from datetime import datetime, timedelta
 
 
 def test_service_register_service(dynamodb):
@@ -14,6 +16,7 @@ def test_service_register_service(dynamodb):
         'healthcheck_interval': 5000,
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
+        'connection_draining': 20,
         'failover_pool_fqdn': ''
     }
 
@@ -32,6 +35,7 @@ def test_service_register_service_with_failover(dynamodb):
         'healthcheck_interval': 5000,
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
+        'connection_draining': 20,
         'failover_pool_fqdn': 'failover.example.com'
     }
 
@@ -44,7 +48,8 @@ def test_service_update_service(dynamodb):
         'healthcheck_path': '/new',
         'healthcheck_interval': 4000,
         'healthcheck_rise': 8,
-        'healthcheck_fall': 2
+        'healthcheck_fall': 2,
+        'connection_draining': 30
     })
     assert response == {
         'name': 'foo',
@@ -53,6 +58,7 @@ def test_service_update_service(dynamodb):
         'healthcheck_interval': 4000,
         'healthcheck_rise': 8,
         'healthcheck_fall': 2,
+        'connection_draining': 30,
         'failover_pool_fqdn': 'failover.example.com'
     }
 
@@ -101,13 +107,15 @@ def test_service_describe(dynamodb):
         'healthcheck_interval': 5000,
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
+        'connection_draining': 20,
         'failover_pool_fqdn': '',
         'target_groups': [
             {
                 "target_group_name": "foo-blue",
                 "backends": [
                     {
-                        "host": '10.0.0.1:80'
+                        "host": '10.0.0.1:80',
+                        "status": "HEALTHY"
                     }
                 ],
                 "weight": 80
@@ -116,10 +124,12 @@ def test_service_describe(dynamodb):
                 "target_group_name": "foo-green",
                 "backends": [
                     {
-                        "host": "10.0.0.1:81"
+                        "host": "10.0.0.1:81",
+                        "status": "HEALTHY"
                     },
                     {
-                        "host": "10.0.0.2:80"
+                        "host": "10.0.0.2:80",
+                        "status": "HEALTHY"
                     }
                 ],
                 "weight": 40
@@ -211,7 +221,8 @@ def test_service_register_backend(dynamodb):
             'target_group_name': 'foo-blue'
         }
     ) == {
-        'host': '10.0.0.1:80'
+        'host': '10.0.0.1:80',
+        "status": "HEALTHY"
     }
 
 
@@ -226,7 +237,8 @@ def test_service_register_backend_allows_dns_for_host(dynamodb):
             'target_group_name': 'foo-blue'
         }
     ) == {
-        'host': host
+        'host': host,
+        "status": "HEALTHY"
     }
 
 
@@ -332,3 +344,49 @@ def test_service_deregister(dynamodb):
 def test_deregister_service_does_not_exist(dynamodb):
     with pytest.raises(Service.DoesNotExist):
         Service.deregister_service('foo')
+
+
+@pytest.fixture
+def service_target_group():
+    def _create(name, tg_name, conn_draining):
+        Service.register_service({
+            'name': name,
+            'fqdn': 'foo.example.com',
+            "connection_draining": conn_draining
+        })
+        Service.register_target_group({
+            'service_name': name,
+            'target_group_name': tg_name,
+            'weight': 80
+        })
+
+    return _create
+
+
+def test_drain_backend_hard_limit(get_dynamodb, service_target_group):
+    name = "foo"
+    tg_name = 'foo-blue'
+    host = "10.0.0.3:80"
+    conn_draining = 30
+    now = datetime(2012, 1, 1)
+    with freeze_time(str(now)):
+        with get_dynamodb():
+            service_target_group(name, tg_name, conn_draining)
+            Service.register_backend(
+                {
+                    'host': host,
+                    'service_name': name,
+                    'target_group_name': tg_name,
+                    'status': "DRAINING"
+                }
+            )
+            Service.query_services()
+            assert BackendModel.get(name, host).status == "DRAINING"
+
+            with freeze_time(str(now + timedelta(seconds=conn_draining - 1))):
+                Service.query_services()
+                assert BackendModel.get(name, host).status == "DRAINING"
+
+            with freeze_time(str(now + timedelta(seconds=conn_draining + 1))):
+                Service.query_services()
+                assert BackendModel.get(name, host).status == "DRAINED"

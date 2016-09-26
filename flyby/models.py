@@ -1,6 +1,7 @@
 from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute
 from pynamodb.attributes import NumberAttribute
+from pynamodb.attributes import UTCDateTimeAttribute
 
 
 class ServiceModel(Model):
@@ -15,6 +16,7 @@ class ServiceModel(Model):
     healthcheck_interval = NumberAttribute(default=5000)
     healthcheck_rise = NumberAttribute(default=10)
     healthcheck_fall = NumberAttribute(default=3)
+    connection_draining = NumberAttribute(default=20)
     failover_pool_fqdn = UnicodeAttribute(default="")
 
     def as_dict(self):
@@ -25,6 +27,7 @@ class ServiceModel(Model):
             'healthcheck_path': self.healthcheck_path,
             'healthcheck_rise': self.healthcheck_rise,
             'healthcheck_fall': self.healthcheck_fall,
+            'connection_draining': self.connection_draining,
             'failover_pool_fqdn': self.failover_pool_fqdn,
         }
 
@@ -58,10 +61,13 @@ class BackendModel(Model):
     service_name = UnicodeAttribute(hash_key=True)
     target_group_name = UnicodeAttribute()
     host = UnicodeAttribute(range_key=True)
+    updated_at = UTCDateTimeAttribute()
+    status = UnicodeAttribute(default="HEALTHY")
 
     def as_dict(self):
         return {
             'host': self.host,
+            'status': self.status
         }
 
     def __eq__(self, other):
