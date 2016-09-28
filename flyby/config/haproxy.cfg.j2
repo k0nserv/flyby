@@ -11,6 +11,9 @@ global
   # turn on stats unix socket
   stats socket /var/lib/haproxy/stats
 
+  # define CA file base dir for SSL requests
+  ca-base      /etc/ssl/certs
+
 defaults
   mode                    http
   log                     global
@@ -78,7 +81,7 @@ backend {{ service.name }}-cluster
   server {{ service.name}}-{{target.target_group_name}}{{loop.index}} {{ backend.host }} check inter 10s weight {{target.weight}} {% if service.dns_resolver != "" %} resolvers {{ service.dns_resolver }} {% endif %}
     {% endfor %}
     {% if service.failover_pool_fqdn != "" -%}
-  server {{ service.name}}-{{target.target_group_name}}-backup {{ service.failover_pool_fqdn }} backup check inter 10s {% if service.dns_resolver != "" %} resolvers {{ service.dns_resolver }} {% endif %} {% if service.failover_pool_ssl_verify_none %} ssl verify none {% endif %}
+  server {{ service.name}}-{{target.target_group_name}}-backup {{ service.failover_pool_fqdn }} backup check inter 10s {% if service.dns_resolver != "" %} resolvers {{ service.dns_resolver }} {% endif %} {% if service.failover_pool_use_https %} ssl ca-file ca-certificates.crt {% endif %} {% if service.failover_pool_ssl_verify_none %} verify none {% endif %}
     {%- endif %}
   {% endfor %}
 {% endfor %}
