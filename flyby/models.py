@@ -2,6 +2,7 @@ from pynamodb.models import Model
 from pynamodb.attributes import UnicodeAttribute
 from pynamodb.attributes import NumberAttribute
 from pynamodb.attributes import BooleanAttribute
+from pynamodb.attributes import UTCDateTimeAttribute
 
 
 class ServiceModel(Model):
@@ -16,9 +17,10 @@ class ServiceModel(Model):
     healthcheck_interval = NumberAttribute(default=5000)
     healthcheck_rise = NumberAttribute(default=10)
     healthcheck_fall = NumberAttribute(default=3)
+    connection_draining = NumberAttribute(default=20)
     failover_pool_fqdn = UnicodeAttribute(default="")
     failover_pool_use_https = BooleanAttribute(default=0)
-    failover_pool_ssl_verify_none = BooleanAttribute(default=0)
+    failover_pool_ssl_allow_self_signed_certs = BooleanAttribute(default=0)
     dns_resolver = UnicodeAttribute(default="")
 
     def as_dict(self):
@@ -29,9 +31,10 @@ class ServiceModel(Model):
             'healthcheck_path': self.healthcheck_path,
             'healthcheck_rise': self.healthcheck_rise,
             'healthcheck_fall': self.healthcheck_fall,
+            'connection_draining': self.connection_draining,
             'failover_pool_fqdn': self.failover_pool_fqdn,
             'failover_pool_use_https': self.failover_pool_use_https,
-            'failover_pool_ssl_verify_none': self.failover_pool_ssl_verify_none,
+            'failover_pool_ssl_allow_self_signed_certs': self.failover_pool_ssl_allow_self_signed_certs,
             'dns_resolver': self.dns_resolver,
         }
 
@@ -55,6 +58,9 @@ class TargetGroupModel(Model):
             'target_group_name': self.target_group_name,
         }
 
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+
 
 class BackendModel(Model):
     """
@@ -67,9 +73,13 @@ class BackendModel(Model):
     host = UnicodeAttribute(range_key=True)
     dns_resolver = UnicodeAttribute(default="")
 
+    updated_at = UTCDateTimeAttribute()
+    status = UnicodeAttribute(default="HEALTHY")
+
     def as_dict(self):
         return {
-            'host': self.host
+            'host': self.host,
+            'status': self.status
         }
 
     def __eq__(self, other):
@@ -80,8 +90,10 @@ class ResolverModel(Model):
     """
     DNS Resolver Model
     """
+
     class Meta:
         table_name = "resolver"
+
     resolver_name = UnicodeAttribute(hash_key=True)
     nameserver_address = UnicodeAttribute()
     nameserver_port = NumberAttribute(default=53)

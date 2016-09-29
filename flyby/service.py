@@ -8,6 +8,7 @@ from flyby.models import BackendModel
 from flyby.models import ResolverModel
 from flyby.models import TargetGroupModel
 from operator import itemgetter
+from .utils import NTP
 
 
 class Service:
@@ -94,25 +95,31 @@ class Service:
 
     @classmethod
     def query_services(cls):
-        data = {s.name: s.as_dict() for s in ServiceModel.scan()}
+        services = {s.name: s.as_dict() for s in ServiceModel.scan()}
         for target_group in TargetGroupModel.scan():
-            svc_name = target_group.service_name
-            data[svc_name]['target_groups'] = data[svc_name].get('target_groups', [])
-            data[svc_name]['target_groups'].append(target_group.as_dict())
-            data[svc_name]['target_groups'] = \
-                sorted(data[svc_name]['target_groups'], key=itemgetter('target_group_name'))
+            service = services[target_group.service_name]
+            groups = service['target_groups'] = service.get('target_groups', [])
+            groups.append(target_group.as_dict())
+            service['target_groups'] = sorted(groups, key=itemgetter('target_group_name'))
 
-        for backend in BackendModel.scan():
-            svc_name = backend.service_name
-            position = next(index for (index, d) in
-                            enumerate(data[svc_name]['target_groups']) if
-                            d["target_group_name"] == backend.target_group_name)
-            data[svc_name]['target_groups'][position]['backends'] = \
-                data[svc_name]['target_groups'][position].get('backends', [])
-            data[svc_name]["target_groups"][position]['backends'].append(backend.as_dict())
-            data[svc_name]["target_groups"][position]['backends'] = \
-                sorted(data[svc_name]['target_groups'][position]['backends'], key=itemgetter('host'))
-        return list(data.values())
+        with BackendModel.batch_write() as batch:
+            for backend in BackendModel.scan():
+                service = services[backend.service_name]
+                if backend.status.upper() == "DRAINING":
+                    now = NTP.get_server_time()
+                    diff = (now - backend.updated_at.replace(tzinfo=None)).total_seconds()
+                    if diff > service["connection_draining"]:
+                        backend.status = "DRAINED"
+                        backend.updated_at = now
+                        batch.save(backend)
+                group = next(filter(
+                    lambda tg: tg["target_group_name"] == backend.target_group_name,
+                    service['target_groups']
+                ))
+                backends = group['backends'] = group.get('backends', [])
+                backends.append(backend.as_dict())
+                group['backends'] = sorted(backends, key=itemgetter('host'))
+        return list(services.values())
 
     @classmethod
     def register_target_group(cls, target_group_definition):
@@ -155,6 +162,7 @@ class Service:
         except TargetGroupModel.DoesNotExist:
             raise Service.DoesNotExist(target_group_name)
 
+        backend_definition["updated_at"] = NTP.get_server_time()
         backend = BackendModel(
             **backend_definition
         )
@@ -179,6 +187,7 @@ class Service:
             "healthcheck_interval": [Range(1000, 60000)],
             "healthcheck_rise": [Range(0, 20)],
             "healthcheck_fall": [Range(0, 20)],
+            "connection_draining": [Range(5, 300)]
         }
         return validate(rules, data)
 

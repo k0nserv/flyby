@@ -3,6 +3,8 @@ from operator import itemgetter
 from flyby.service import TargetGroupModel, BackendModel, Service
 import string
 import random
+from freezegun import freeze_time
+from datetime import datetime, timedelta
 
 
 def test_service_register_service(dynamodb):
@@ -15,9 +17,10 @@ def test_service_register_service(dynamodb):
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
         'failover_pool_fqdn': '',
-        'failover_pool_ssl_verify_none': 0,
+        'failover_pool_ssl_allow_self_signed_certs': 0,
         'failover_pool_use_https': 0,
-        'dns_resolver': ''
+        'dns_resolver': '',
+        'connection_draining': 20
     }
 
 
@@ -28,6 +31,7 @@ def test_service_register_service_with_failover(dynamodb):
             'fqdn': 'foo.example.com',
             'failover_pool_fqdn': 'failover.example.com:80'
         })
+
     assert response == {
         'name': 'foo',
         'fqdn': 'foo.example.com',
@@ -36,8 +40,9 @@ def test_service_register_service_with_failover(dynamodb):
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
         'failover_pool_fqdn': 'failover.example.com:80',
-        'failover_pool_ssl_verify_none': 0,
+        'failover_pool_ssl_allow_self_signed_certs': 0,
         'failover_pool_use_https': 0,
+        'connection_draining': 20,
         'dns_resolver': ''
     }
 
@@ -58,9 +63,10 @@ def test_service_register_service_with_https_failover(dynamodb):
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
         'failover_pool_fqdn': 'failover.example.com:80',
-        'failover_pool_ssl_verify_none': 0,
+        'failover_pool_ssl_allow_self_signed_certs': 0,
         'failover_pool_use_https': 1,
-        'dns_resolver': ''
+        'dns_resolver': '',
+        "connection_draining": 20,
     }
 
 
@@ -79,9 +85,10 @@ def test_service_register_service_with_dns_resolver(dynamodb):
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
         'failover_pool_fqdn': '',
-        'failover_pool_ssl_verify_none': 0,
+        'failover_pool_ssl_allow_self_signed_certs': 0,
         'failover_pool_use_https': 0,
-        'dns_resolver': 'dnsmasq'
+        'dns_resolver': 'dnsmasq',
+        'connection_draining': 20,
     }
 
 
@@ -94,7 +101,8 @@ def test_service_update_service(dynamodb):
         'healthcheck_path': '/new',
         'healthcheck_interval': 4000,
         'healthcheck_rise': 8,
-        'healthcheck_fall': 2
+        'healthcheck_fall': 2,
+        'connection_draining': 30
     })
     assert response == {
         'name': 'foo',
@@ -104,19 +112,21 @@ def test_service_update_service(dynamodb):
         'healthcheck_rise': 8,
         'healthcheck_fall': 2,
         'failover_pool_fqdn': 'failover.example.com:80',
-        'failover_pool_ssl_verify_none': 0,
+        'failover_pool_ssl_allow_self_signed_certs': 0,
         'failover_pool_use_https': 0,
-        'dns_resolver': 'dnsmasq'
+        'dns_resolver': 'dnsmasq',
+        'connection_draining': 30
     }
 
 
 def test_service_describe(dynamodb):
+
     Service.register_service({
         'name': 'foo',
         'fqdn': 'foo.example.com',
         'dns_resolver': 'dnsmasq',
         'failover_pool_fqdn': 'failover.example.com:80',
-        'failover_pool_ssl_verify_none': 1,
+        'failover_pool_ssl_allow_self_signed_certs': 1,
         'failover_pool_use_https': 1,
     })
     Service.register_target_group(
@@ -154,7 +164,8 @@ def test_service_describe(dynamodb):
             'target_group_name': 'foo-green'
         }
     )
-    assert Service.describe_service('foo') == {
+    response = Service.describe_service('foo')
+    assert response == {
         'name': 'foo',
         'fqdn': 'foo.example.com',
         'healthcheck_path': '/',
@@ -162,16 +173,18 @@ def test_service_describe(dynamodb):
         'healthcheck_rise': 10,
         'healthcheck_fall': 3,
         'failover_pool_fqdn': 'failover.example.com:80',
-        'failover_pool_ssl_verify_none': 1,
+        'failover_pool_ssl_allow_self_signed_certs': 1,
         'failover_pool_use_https': 1,
         'dns_resolver': 'dnsmasq',
+        'connection_draining': 20,
 
         'target_groups': [
             {
                 "target_group_name": "foo-blue",
                 "backends": [
                     {
-                        "host": '10.0.0.1:80'
+                        "host": '10.0.0.1:80',
+                        "status": "HEALTHY"
                     }
                 ],
                 "weight": 80
@@ -180,10 +193,12 @@ def test_service_describe(dynamodb):
                 "target_group_name": "foo-green",
                 "backends": [
                     {
-                        "host": "10.0.0.1:81"
+                        "host": "10.0.0.1:81",
+                        "status": "HEALTHY"
                     },
                     {
-                        "host": "10.0.0.2:80"
+                        "host": "10.0.0.2:80",
+                        "status": "HEALTHY"
                     }
                 ],
                 "weight": 40
@@ -276,7 +291,8 @@ def test_service_register_backend(dynamodb):
             'target_group_name': 'foo-blue'
         }
     ) == {
-        'host': '10.0.0.1:80'
+        'host': '10.0.0.1:80',
+        "status": "HEALTHY"
     }
 
 
@@ -291,7 +307,8 @@ def test_service_register_backend_allows_dns_for_host(dynamodb):
             'target_group_name': 'foo-blue'
         }
     ) == {
-        'host': host
+        'host': host,
+        "status": "HEALTHY"
     }
 
 
@@ -419,3 +436,49 @@ def test_service_register_resolver_space_in_resolver_name(dynamodb):
 def test_deregister_resolver(dynamodb):
     Service.register_resolver({'resolver_name': 'dns', 'nameserver_address': 'dnsmasq'})
     assert Service.deregister_resolver('dns') is True
+
+
+@pytest.fixture
+def service_target_group():
+    def _create(name, tg_name, conn_draining):
+        Service.register_service({
+            'name': name,
+            'fqdn': 'foo.example.com',
+            "connection_draining": conn_draining
+        })
+        Service.register_target_group({
+            'service_name': name,
+            'target_group_name': tg_name,
+            'weight': 80
+        })
+
+    return _create
+
+
+def test_drain_backend_hard_limit(get_dynamodb, service_target_group):
+    name = "foo"
+    tg_name = 'foo-blue'
+    host = "10.0.0.3:80"
+    conn_draining = 30
+    now = datetime(2012, 1, 1)
+    with freeze_time(str(now)):
+        with get_dynamodb():
+            service_target_group(name, tg_name, conn_draining)
+            Service.register_backend(
+                {
+                    'host': host,
+                    'service_name': name,
+                    'target_group_name': tg_name,
+                    'status': "DRAINING"
+                }
+            )
+            Service.query_services()
+            assert BackendModel.get(name, host).status == "DRAINING"
+
+            with freeze_time(str(now + timedelta(seconds=conn_draining - 1))):
+                Service.query_services()
+                assert BackendModel.get(name, host).status == "DRAINING"
+
+            with freeze_time(str(now + timedelta(seconds=conn_draining + 1))):
+                Service.query_services()
+                assert BackendModel.get(name, host).status == "DRAINED"

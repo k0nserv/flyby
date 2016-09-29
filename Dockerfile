@@ -6,6 +6,6 @@ WORKDIR /usr/src/app
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
 COPY . .
-RUN pip install .
+RUN pip install -e .
 EXPOSE 5000
 CMD ["flyby", "start"]

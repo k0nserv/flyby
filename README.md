@@ -61,6 +61,6 @@ Add a host entries for foo.example.com to localhost and you should be able to te
 A Docker compose file `docker-compose-local-ssl-failover-test.yml` is provided which will set up an environment with 2 backends: foo and baz.
 * foo.example.com will use the 'foo' backend but failover to the HTTPS 'baz' backend if 'foo' is not available
 
-Run the script `setup_test_foo_baz.sh` after your docker compose has finished to provision the configuration. The failover configuration includes setting 'failover_pool_ssl_verify_none' to allow 'baz' to expose a self-signed certificate.
+Run the script `setup_test_foo_baz.sh` after your docker compose has finished to provision the configuration. The failover configuration includes setting 'failover_pool_ssl_allow_self_signed_certs' to allow 'baz' to expose a self-signed certificate.
 
 Add a host entries for foo.example.com to localhost and you should be able to test failover.

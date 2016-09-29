@@ -5,11 +5,18 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from flyby.models import ServiceModel, BackendModel, TargetGroupModel, ResolverModel
 from flyby.service import Service
 from flyby.server import app
+from sys import exit
+try:
+    from flyby.gunicorn import StandaloneApplication
+except ImportError:
+    logger.info("Unable to import StandaloneApplication from gunicorn, Windows is not supported")
+    exit(0)
 import threading
 import logging
 import logging.config
 import time
 import yaml
+
 
 logger = logging.getLogger(__name__)
 metrics = logging.getLogger('metrics')
@@ -64,7 +71,13 @@ def update(fqdn, dynamo_region, dynamo_host, table_root):
               type=click.Choice(
                   ['NOTSET', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG']),
               default='INFO')
-def start(fqdn, dynamo_region, dynamo_host, table_root, log_config, verbosity):
+@click.option('-e', '--environment',
+              envvar='FLYBY_ENVIRONMENT',
+              help='development or production',
+              type=click.Choice(
+                  ['development', 'production']),
+              default='development')
+def start(fqdn, dynamo_region, dynamo_host, table_root, log_config, verbosity, environment):
     """
     Starts an APScheduler job to periodically reload HAProxy config as well as run the API to register/deregister
     new services, target groups and backends.
@@ -85,4 +98,7 @@ def start(fqdn, dynamo_region, dynamo_host, table_root, log_config, verbosity):
     scheduler = BackgroundScheduler(timezone=utc)
     scheduler.add_job(update, 'interval', seconds=10, args=(fqdn, dynamo_region, dynamo_host, table_root))
     scheduler.start()
-    app.run(host='0.0.0.0')
+    if environment == "development":
+        app.run(host='0.0.0.0')
+    else:
+        StandaloneApplication(app).run()
