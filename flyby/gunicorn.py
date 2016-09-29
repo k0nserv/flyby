@@ -12,7 +12,7 @@ class StandaloneApplication(gunicorn.app.base.BaseApplication):
 
     def __init__(self, app, options=None):
         self.options = {
-            'bind': '%s:%s' % ('0.0.0.0', '5000'),
+            'bind': '%s:%s' % ('0.0.0.0', '80'),
             'workers': number_of_workers()
             }
         self.options.update(options or {})
