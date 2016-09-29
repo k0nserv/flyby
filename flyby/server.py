@@ -90,6 +90,11 @@ def register_dns_resolver():
     return flask.jsonify(data)
 
 
+@app.route("/resolver", methods=["GET"])
+def query_resolvers():
+    return flask.jsonify({'resolvers': Service.query_resolvers()})
+
+
 @app.route("/resolver/<resolver_name>", methods=["DELETE"])
 def deregister_resolver(resolver_name):
     try:

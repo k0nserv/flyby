@@ -182,6 +182,41 @@ def test_server_register_resolver(dynamodb):
     assert json.loads(response.data)['nameserver_address'] == 'dnsmasq'
 
 
+def test_server_describe_all_resolvers(dynamodb):
+    app.test_client().post(
+        '/resolver',
+        data=json.dumps({'resolver_name': 'dns', 'nameserver_address': 'dnsmasq'})
+    )
+    app.test_client().post(
+        '/resolver',
+        data=json.dumps({'resolver_name': 'dns2', 'nameserver_address': 'dnsmasq'})
+    )
+    response = json.loads(app.test_client().get('/resolver').data)
+    resolvers = sorted(
+        response["resolvers"],
+        key=lambda x: x["name"]
+        )
+    expected = [
+        {
+            "hold_valid": "30s",
+            "name": "dns",
+            "nameserver_address": "dnsmasq",
+            "nameserver_port": 53,
+            "resolve_retries": 10,
+            "timeout_retry": "5s"
+        },
+        {
+            "hold_valid": "30s",
+            "name": "dns2",
+            "nameserver_address": "dnsmasq",
+            "nameserver_port": 53,
+            "resolve_retries": 10,
+            "timeout_retry": "5s"
+        }
+    ]
+    assert resolvers == expected
+
+
 def test_server_describe_resolver(dynamodb):
     app.test_client().post(
         '/resolver',
