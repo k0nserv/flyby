@@ -1,7 +1,7 @@
 from flyby.haproxy import Haproxy
 
 
-def test_harproxy_update_config(tmpdir, mocker):
+def test_haproxy_update_config(tmpdir, mocker):
     mocker.patch('flyby.haproxy.subprocess')
     config = tmpdir.join("haproxy.cfg")
     config.write("ha config")
@@ -47,7 +47,7 @@ def test_harproxy_update_config(tmpdir, mocker):
     assert "server foo-foo-green-3 10.0.0.3:81 check inter 10s weight 43" in updated_config
 
 
-def test_harproxy_update_config_supports_resolver(tmpdir, mocker):
+def test_haproxy_update_config_supports_resolver(tmpdir, mocker):
     mocker.patch('flyby.haproxy.subprocess')
     config = tmpdir.join("haproxy.cfg")
     config.write("ha config")
@@ -92,7 +92,7 @@ def test_harproxy_update_config_supports_resolver(tmpdir, mocker):
     assert "server foo-foo-blue-1 10.0.0.1:80 check inter 10s weight 256  resolvers my-resolver" in updated_config
 
 
-def test_harproxy_update_config_does_not_inject_unneeded_resolver(tmpdir, mocker):
+def test_haproxy_update_config_does_not_inject_unneeded_resolver(tmpdir, mocker):
     mocker.patch('flyby.haproxy.subprocess')
     config = tmpdir.join("haproxy.cfg")
     config.write("ha config")
@@ -123,7 +123,7 @@ def test_harproxy_update_config_does_not_inject_unneeded_resolver(tmpdir, mocker
     assert "resolvers" not in updated_config
 
 
-def test_harproxy_update_config_supports_ssl_backend_failover(tmpdir, mocker):
+def test_haproxy_update_config_supports_ssl_backend_failover(tmpdir, mocker):
     mocker.patch('flyby.haproxy.subprocess')
     config = tmpdir.join("haproxy.cfg")
     config.write("ha config")
@@ -158,7 +158,7 @@ def test_harproxy_update_config_supports_ssl_backend_failover(tmpdir, mocker):
            in updated_config
 
 
-def test_harproxy_update_config_supports_ssl_backend_failover_with_self_signed_cert(tmpdir, mocker):
+def test_haproxy_update_config_supports_ssl_backend_failover_with_self_signed_cert(tmpdir, mocker):
     mocker.patch('flyby.haproxy.subprocess')
     config = tmpdir.join("haproxy.cfg")
     config.write("ha config")
