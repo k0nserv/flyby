@@ -15,7 +15,7 @@ services:
     environment:
       AWS_DEFAULT_REGION: 'eu-west-1'
       AWS_ACCESS_KEY_ID: foo
-      AWS_SECRET_ACCESS_KEY: bar
+      AWS_SECRET_ACCESS_KEY: bar_lb_ssl
       FLYBY_DYNAMO_HOST: 'http://localdynamodb:7777'
     links: [localdynamodb, dnsmasq]
     ports: ["80:80", "5000:5000"]
@@ -34,6 +34,13 @@ services:
     image: dockercloud/hello-world
     ports: ["9000:80"]
 
-  bar:
+  baz_lb_ssl:
+    build:
+      context: .
+      dockerfile: test_ssl_dependency/Dockerfile.haproxy
+    ports: ["9443:443", "1936:1936"]
+    links:
+     - baz
+
+  baz:
     image: dockercloud/hello-world
-    ports: ["9001:80"]

@@ -1,0 +1,5 @@
+FROM haproxy:1.6.9-alpine
+RUN apk --update add openssl
+RUN openssl req -newkey rsa:2048 -x509 -keyout server.pem -out server.pem -days 365 -nodes -subj "/C=US/ST=Denial/L=Springfield/O=Dis/CN=*.example.com"
+RUN chmod 400 server.pem
+COPY test_ssl_dependency/haproxy-ssl-test.cfg /usr/local/etc/haproxy/haproxy.cfg

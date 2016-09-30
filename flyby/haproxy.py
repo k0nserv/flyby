@@ -41,7 +41,7 @@ class Haproxy:
                     target_group["backends"] = [
                         b for b in target_group.get("backends", [])
                         if b.get("status", "").upper() == "HEALTHY"
-                    ]
+                        ]
                     if target_group["backends"]:
                         value = 256 / (weight / len(target_group["backends"]))
                         min_multiplier = min(
@@ -62,10 +62,11 @@ class Haproxy:
                 filtered_services.append(service)
         return filtered_services
 
-    def update(self, services, fqdn="flyby.example.com"):
+    def update(self, services, fqdn="flyby.example.com", resolvers=None):
+        resolvers = resolvers if resolvers else []
         env = Environment(loader=PackageLoader('flyby', 'config'))
         template = env.get_template('haproxy.cfg.j2')
-        c = template.render(fqdn=fqdn, services=self._filter_services(services))
+        c = template.render(fqdn=fqdn, services=self._filter_services(services), resolvers=resolvers)
         if self.config != c:
             self.config = c
             self._run()

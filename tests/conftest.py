@@ -2,6 +2,7 @@ import moto
 from flyby.models import ServiceModel
 from flyby.models import TargetGroupModel
 from flyby.models import BackendModel
+from flyby.models import ResolverModel
 from flyby.utils import NTP
 import pytest
 from datetime import datetime
@@ -16,6 +17,7 @@ class DynamoHandler(object):
         ServiceModel.create_table(1, 1, True)
         TargetGroupModel.create_table(1, 1, True)
         BackendModel.create_table(1, 1, True)
+        ResolverModel.create_table(1, 1, True)
         self._server_time_getter = NTP.get_server_time
         NTP.get_server_time = datetime.now
         return self

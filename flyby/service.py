@@ -1,13 +1,13 @@
-from flyby.utils import ValidHost
-from validator import Required
+from flyby.utils import ValidHost, ValidHostWithPort
+from validator import Required, Pattern
 from validator import Length
 from validator import Range
 from validator import validate
 from flyby.models import ServiceModel
 from flyby.models import BackendModel
+from flyby.models import ResolverModel
 from flyby.models import TargetGroupModel
 from operator import itemgetter
-from datetime import datetime
 from .utils import NTP
 
 
@@ -86,6 +86,14 @@ class Service:
         return data
 
     @classmethod
+    def query_resolvers(cls):
+        # Resolvers
+        resolvers = []
+        for resolver in ResolverModel.scan():
+            resolvers.append(resolver.as_dict())
+        return resolvers
+
+    @classmethod
     def query_services(cls):
         services = {s.name: s.as_dict() for s in ServiceModel.scan()}
         for target_group in TargetGroupModel.scan():
@@ -93,6 +101,7 @@ class Service:
             groups = service['target_groups'] = service.get('target_groups', [])
             groups.append(target_group.as_dict())
             service['target_groups'] = sorted(groups, key=itemgetter('target_group_name'))
+
         with BackendModel.batch_write() as batch:
             for backend in BackendModel.scan():
                 service = services[backend.service_name]
@@ -169,8 +178,8 @@ class Service:
         backend.delete()
         return True
 
-    @classmethod
-    def validate_service(cls, data):
+    @staticmethod
+    def validate_service(data):
         rules = {
             "name": [Required, Length(3, 25)],
             "fqdn": [Required],
@@ -182,8 +191,8 @@ class Service:
         }
         return validate(rules, data)
 
-    @classmethod
-    def validate_target_group(cls, data):
+    @staticmethod
+    def validate_target_group(data):
         rules = {
             "service_name": [Required, Length(3, 25)],
             "target_group_name": [Required],
@@ -191,11 +200,48 @@ class Service:
         }
         return validate(rules, data)
 
-    @classmethod
-    def validate_backend(cls, data):
+    @staticmethod
+    def validate_backend(data):
         rules = {
-            "host": [Required, ValidHost()],
+            "host": [Required, ValidHostWithPort()],
             "service_name": [Required, Length(3, 25)],
             "target_group_name": [Required],
         }
         return validate(rules, data)
+
+    @classmethod
+    def register_resolver(cls, resolver_def):
+        valid, errors = cls.validate_resolver(resolver_def)
+        if not valid:
+            raise cls.NotValid(errors)
+        resolver = ResolverModel(**resolver_def)
+        resolver.save()
+        return resolver.as_dict()
+
+    @staticmethod
+    def validate_resolver(data):
+        rules = {
+            "resolver_name": [Required, Pattern('^\S*$')],
+            "nameserver_address": [Required, ValidHost()]
+        }
+        return validate(rules, data)
+
+    @staticmethod
+    def deregister_resolver(name):
+        try:
+            resolver = ResolverModel.get(name)
+        except ResolverModel.DoesNotExist:
+            raise Service.DoesNotExist("resolver - {}".format(name))
+
+        resolver.delete()
+        return True
+
+    @classmethod
+    def describe_resolver(cls, resolver_name):
+        try:
+            resolver = ResolverModel.get(resolver_name)
+        except ResolverModel.DoesNotExist:
+            raise Service.DoesNotExist(resolver_name)
+
+        data = resolver.as_dict()
+        return data

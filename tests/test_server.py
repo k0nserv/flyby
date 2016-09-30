@@ -170,3 +170,75 @@ def test_server_deregister_backend(dynamodb):
     assert second_response.status_code == 404
     service = json.loads(app.test_client().get('/service/foo').data)
     assert service['target_groups'][0]['backends'] == []
+
+
+def test_server_register_resolver(dynamodb):
+    response = app.test_client().post(
+        '/resolver',
+        data=json.dumps({'resolver_name': 'dns', 'nameserver_address': 'dnsmasq'})
+    )
+    assert response.status_code == 200
+    assert json.loads(response.data)['name'] == 'dns'
+    assert json.loads(response.data)['nameserver_address'] == 'dnsmasq'
+
+
+def test_server_describe_all_resolvers(dynamodb):
+    app.test_client().post(
+        '/resolver',
+        data=json.dumps({'resolver_name': 'dns', 'nameserver_address': 'dnsmasq'})
+    )
+    app.test_client().post(
+        '/resolver',
+        data=json.dumps({'resolver_name': 'dns2', 'nameserver_address': 'dnsmasq'})
+    )
+    response = json.loads(app.test_client().get('/resolver').data)
+    resolvers = sorted(
+        response["resolvers"],
+        key=lambda x: x["name"]
+        )
+    expected = [
+        {
+            "hold_valid": "30s",
+            "name": "dns",
+            "nameserver_address": "dnsmasq",
+            "nameserver_port": 53,
+            "resolve_retries": 10,
+            "timeout_retry": "5s"
+        },
+        {
+            "hold_valid": "30s",
+            "name": "dns2",
+            "nameserver_address": "dnsmasq",
+            "nameserver_port": 53,
+            "resolve_retries": 10,
+            "timeout_retry": "5s"
+        }
+    ]
+    assert resolvers == expected
+
+
+def test_server_describe_resolver(dynamodb):
+    app.test_client().post(
+        '/resolver',
+        data=json.dumps({'resolver_name': 'dns', 'nameserver_address': 'dnsmasq'})
+    )
+    response = app.test_client().get('/resolver/dns')
+    assert response.status_code == 200
+    assert json.loads(response.data)['name'] == 'dns'
+    assert json.loads(response.data)['nameserver_address'] == 'dnsmasq'
+
+
+def test_server_deregister_resolver(dynamodb):
+    app.test_client().post(
+        '/resolver',
+        data=json.dumps({'resolver_name': 'dns', 'nameserver_address': 'dnsmasq'})
+    )
+    response = app.test_client().delete('/resolver/dns')
+    assert response.status_code == 200
+
+    describe_response = app.test_client().get('/resolver/dns')
+    assert describe_response.status_code == 404
+
+    deletion_response = app.test_client().delete('/resolver/dns')
+    assert deletion_response.status_code == 404
+    assert deletion_response.data.decode('UTF-8') == 'Resolver: dns not currently registered with Flyby.'
