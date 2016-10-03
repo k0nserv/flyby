@@ -6,5 +6,4 @@ pynamodb==1.5.3
 validator.py==1.2.5
 pyyaml==3.12
 ntplib==0.3.3
-gunicorn==19.6.0
 waitress==1.0.0
