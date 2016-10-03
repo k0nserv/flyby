@@ -6,7 +6,6 @@ from flyby.models import ServiceModel, BackendModel, TargetGroupModel, ResolverM
 from flyby.service import Service
 from flyby.server import app
 from sys import exit
-from datetime import datetime
 import threading
 import logging
 import logging.config
