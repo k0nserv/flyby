@@ -94,6 +94,10 @@ def start(fqdn, dynamo_region, dynamo_host, table_root, log_config, verbosity, e
     scheduler = BackgroundScheduler(timezone=utc)
     scheduler.add_job(update, 'interval', seconds=10, args=(fqdn, dynamo_region, dynamo_host, table_root))
     scheduler.start()
+
+    # Call update on startup to ensure tables exist
+    update(fqdn=fqdn, dynamo_region=dynamo_region, dynamo_host=dynamo_host, table_root=table_root)
+
     if environment == "development":
         app.run(host='0.0.0.0')
     else:
