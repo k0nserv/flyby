@@ -6,16 +6,12 @@ from flyby.models import ServiceModel, BackendModel, TargetGroupModel, ResolverM
 from flyby.service import Service
 from flyby.server import app
 from sys import exit
-try:
-    from flyby.gunicorn import StandaloneApplication
-except ImportError:
-    logger.info("Unable to import StandaloneApplication from gunicorn, Windows is not supported")
-    exit(0)
 import threading
 import logging
 import logging.config
 import time
 import yaml
+from waitress import serve
 
 
 logger = logging.getLogger(__name__)
@@ -101,4 +97,4 @@ def start(fqdn, dynamo_region, dynamo_host, table_root, log_config, verbosity, e
     if environment == "development":
         app.run(host='0.0.0.0')
     else:
-        StandaloneApplication(app).run()
+        serve(app, listen='*:5000')
