@@ -1,6 +1,6 @@
 import logging
 import subprocess
-import _thread
+from threading import Thread
 import time
 from jinja2 import Environment, PackageLoader
 
@@ -97,7 +97,7 @@ class Haproxy:
                 self.command + ["-sf", str(Haproxy.process.pid)]
             )
             old_process = Haproxy.process
-            _thread.start_new_thread(_wait_pid, (old_process,))
+            Thread(target=_wait_pid, args=(old_process,)).start()
             Haproxy.process = process
             logger.info(
                 "HAProxy has been reloaded(PID: {})".format(str(Haproxy.process.pid)))
