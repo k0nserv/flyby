@@ -3,6 +3,8 @@ from pynamodb.attributes import UnicodeAttribute
 from pynamodb.attributes import NumberAttribute
 from pynamodb.attributes import BooleanAttribute
 from pynamodb.attributes import UTCDateTimeAttribute
+from configobj import ConfigObj, flatten_errors
+from validate import Validator
 
 
 class ServiceModel(Model):
@@ -113,3 +115,52 @@ class ResolverModel(Model):
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+
+
+class DynamoCapacityManagement:
+
+    @staticmethod
+    def _return_table_config(table_name):
+        """
+        Return the table configuration from a config file
+        :param table_name:
+        :return:
+        """
+        config = ConfigObj(infile='config.ini', configspec='flyby/configspec.ini', stringify=True)
+        config.validate(Validator(), preserve_errors=True)
+        for section in config.sections:
+            for k, v in config[section][table_name].items():
+                yield(k, v)
+
+    def return_capacity(self, default_table_name):
+        """
+        return the read/write capacity requirements
+        :param default_table_name:
+        :return:
+        """
+        capacity_values = {}
+        for k, v in self._return_table_config(default_table_name):
+            if k in ['ReadCapacityUnits', 'WriteCapacityUnits']:
+                capacity_values.update({k: int(v)})
+        return capacity_values
+
+    def capacity_check(self, default_table_name, table_name, conn):
+        """
+        return the read and write capacity of the given table
+        :param table_name:
+        :param conn: pynamodb connection object
+        :param default_table_name: name of the table, as specified in the model (no table root)
+        :return: dict
+        """
+        config_results = self.return_capacity(default_table_name)
+        pynamo_results = {}
+        dynamo_table = conn.describe_table(table_name=table_name)
+        for k, v in dynamo_table['ProvisionedThroughput'].items():
+            if k in ['ReadCapacityUnits', 'WriteCapacityUnits']:
+                pynamo_results.update({k.lower():int(v)})
+        return {
+            'result': pynamo_results == config_results,
+            'decreases': dynamo_table['ProvisionedThroughput']['NumberOfDecreasesToday'],
+            'read': config_results['ReadCapacityUnits'],
+            'write': config_results['WriteCapacityUnits']
+        }

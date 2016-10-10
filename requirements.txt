@@ -7,3 +7,4 @@ validator.py==1.2.5
 pyyaml==3.12
 ntplib==0.3.3
 waitress==1.0.0
+configobj==5.0.6
