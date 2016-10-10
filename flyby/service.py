@@ -181,7 +181,7 @@ class Service:
     @staticmethod
     def validate_service(data):
         rules = {
-            "name": [Required, Length(3, 25)],
+            "name": [Required, Length(3, 50)],
             "fqdn": [Required],
             "healthcheck_path": [],
             "healthcheck_interval": [Range(1000, 60000)],
@@ -194,7 +194,7 @@ class Service:
     @staticmethod
     def validate_target_group(data):
         rules = {
-            "service_name": [Required, Length(3, 25)],
+            "service_name": [Required, Length(3, 50)],
             "target_group_name": [Required],
             "weight": [Required, Range(0, 256)],
         }
@@ -204,7 +204,7 @@ class Service:
     def validate_backend(data):
         rules = {
             "host": [Required, ValidHostWithPort()],
-            "service_name": [Required, Length(3, 25)],
+            "service_name": [Required, Length(3, 50)],
             "target_group_name": [Required],
         }
         return validate(rules, data)
