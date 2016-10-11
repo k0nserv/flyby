@@ -1,5 +1,5 @@
 pytest
-git+git://github.com/skygeo/moto@fix_dynamodb_batch_write
+git+git://github.com/spulec/moto@master
 pytest-cov
 pytest-mock
 pytest-pep8
