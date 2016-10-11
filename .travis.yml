@@ -19,7 +19,7 @@ after_success:
 - docker login -u $DOCKER_USER -p $DOCKER_PASS
 - export REPO=skyscanner/flyby
 - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH; fi`
-- docker build -t $REPO:$COMMIT .
+- docker build -t $REPO:$COMMIT --build-arg GITSHA=$TRAVIS_COMMIT --build-arg BUILDDATE="`date`" .
 - docker tag $REPO:$COMMIT $REPO:$TAG
 - docker tag $REPO:$COMMIT $REPO:travis-$TRAVIS_BUILD_NUMBER
 - docker push $REPO
