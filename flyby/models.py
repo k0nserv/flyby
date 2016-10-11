@@ -4,8 +4,6 @@ from pynamodb.attributes import NumberAttribute
 from pynamodb.attributes import BooleanAttribute
 from pynamodb.attributes import UTCDateTimeAttribute
 from pynamodb.connection import Connection
-from configobj import ConfigObj, flatten_errors
-from validate import Validator
 import re
 
 
@@ -122,31 +120,29 @@ class ResolverModel(Model):
 class DynamoTableManagement:
 
     @staticmethod
-    def _return_table_config(table_name):
+    def _return_table_config(table_name, config):
         """
         Return the table configuration from a config file
         :param table_name:
         :return:
         """
-        config = ConfigObj(infile='config.ini', configspec='flyby/configspec.ini', stringify=True)
-        config.validate(Validator(), preserve_errors=True)
         for section in config.sections:
             for k, v in config[section][table_name].items():
                 yield(k, v)
 
-    def return_capacity(self, default_table_name):
+    def return_capacity(self, default_table_name, config):
         """
         return the read/write capacity requirements
         :param default_table_name:
         :return:
         """
         capacity_values = {}
-        for k, v in self._return_table_config(default_table_name):
+        for k, v in self._return_table_config(default_table_name, config):
             if k in ['read_capacity_units', 'write_capacity_units']:
                 capacity_values.update({k: int(v)})
         return capacity_values
 
-    def capacity_check(self, default_table_name, table_name, conn):
+    def capacity_check(self, default_table_name, table_name, conn, config):
         """
         return the read and write capacity of the given table
         :param table_name:
@@ -154,7 +150,7 @@ class DynamoTableManagement:
         :param default_table_name: name of the table, as specified in the model (no table root)
         :return: dict
         """
-        config_results = self.return_capacity(default_table_name)
+        config_results = self.return_capacity(default_table_name, config)
         pynamo_results = {}
         dynamo_table = conn.describe_table(table_name=table_name)
         for k, v in dynamo_table['ProvisionedThroughput'].items():
@@ -172,7 +168,7 @@ class DynamoTableManagement:
         s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
         return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
-    def update_capacity(self, dynamo_host, dynamo_region, table_root, logger):
+    def update_capacity(self, dynamo_host, dynamo_region, table_root, logger, config):
         """
         Manage the DynamoDB tables:
          - Create if the tables don't exist
@@ -195,15 +191,15 @@ class DynamoTableManagement:
                 model.Meta.table_name = "{0}-{1}".format(table_root, model.Meta.table_name)
             if not model.exists():
                 logger.info("Creating {} table".format(model.Meta.table_name))
-                read_capacity_units = self.return_capacity(default_table_name)['read_capacity_units']
-                write_capacity_units = self.return_capacity(default_table_name)['write_capacity_units']
+                read_capacity_units = self.return_capacity(default_table_name, config)['read_capacity_units']
+                write_capacity_units = self.return_capacity(default_table_name, config)['write_capacity_units']
                 model.create_table(read_capacity_units=read_capacity_units,
                                    write_capacity_units=write_capacity_units,
                                    wait=True
                                    )
             else:
                 table_name = model.Meta.table_name
-                table_capacity = self.capacity_check(default_table_name, table_name, conn)
+                table_capacity = self.capacity_check(default_table_name, table_name, conn, config)
                 if not table_capacity['result'] and table_capacity['decreases'] < 4:
                     conn.update_table(
                         table_name=model.Meta.table_name, read_capacity_units=table_capacity['read'],

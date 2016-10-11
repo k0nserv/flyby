@@ -1,11 +1,11 @@
 from flyby.models import Connection
-from flyby.models import ConfigObj, DynamoTableManagement
+from flyby.cli import ConfigObj, DynamoTableManagement
 import pytest
 
 
 def test_capacity_check(mock_dynamo_call, mocker, mock_config_file):
     dynamo_manager = DynamoTableManagement()
-    assert dynamo_manager.capacity_check('service', 'flyby-service', Connection) == {
+    assert dynamo_manager.capacity_check('service', 'flyby-service', Connection, mock_config_file) == {
         'decreases': 0,
         'read': 5,
         'result': False,
@@ -80,5 +80,4 @@ def mock_config_file(mocker, tmpdir):
 
         """
     )
-    sample_config = ConfigObj(infile=config, configspec=config_spec, stringify=True)
-    mocker.patch('flyby.models.ConfigObj', return_value=sample_config)
+    return ConfigObj(infile=config, configspec=config_spec, stringify=True)
