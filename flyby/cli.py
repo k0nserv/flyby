@@ -2,7 +2,7 @@ import click
 from pytz import utc
 from flyby.haproxy import Haproxy
 from apscheduler.schedulers.background import BackgroundScheduler
-from flyby.models import ServiceModel, BackendModel, TargetGroupModel, ResolverModel
+from flyby.models import DynamoTableManagement
 from flyby.service import Service
 from flyby.server import app
 from sys import exit
@@ -12,6 +12,8 @@ import logging.config
 import time
 import yaml
 from waitress import serve
+from configobj import ConfigObj, flatten_errors
+from validate import Validator
 
 
 logger = logging.getLogger(__name__)
@@ -23,17 +25,8 @@ def cli():
     pass
 
 
-def update(fqdn, dynamo_region, dynamo_host, table_root):
+def update(fqdn):
     start_time = time.time()
-    models = [BackendModel, ServiceModel, TargetGroupModel, ResolverModel]
-    for model in models:
-        model.Meta.table_name = "{0}-{1}".format(table_root, model.Meta.table_name)
-        model.Meta.region = dynamo_region
-        if dynamo_host:
-            model.Meta.host = dynamo_host
-        if not model.exists():
-            logger.info("Creating {} table".format(model.Meta.table_name))
-            model.create_table(read_capacity_units=1, write_capacity_units=1, wait=True)
     resolvers = Service.query_resolvers()
     services = Service.query_services()
     Haproxy().update(fqdn=fqdn, resolvers=resolvers, services=services)
@@ -73,7 +66,10 @@ def update(fqdn, dynamo_region, dynamo_host, table_root):
               type=click.Choice(
                   ['development', 'production']),
               default='development')
-def start(fqdn, dynamo_region, dynamo_host, table_root, log_config, verbosity, environment):
+@click.option('-c', '--server-config',
+              envvar='FLYBY_SERVER_CONFIG',
+              help='Flyby configuration file.')
+def start(fqdn, dynamo_region, dynamo_host, table_root, log_config, verbosity, environment, server_config):
     """
     Starts an APScheduler job to periodically reload HAProxy config as well as run the API to register/deregister
     new services, target groups and backends.
@@ -88,11 +84,21 @@ def start(fqdn, dynamo_region, dynamo_host, table_root, log_config, verbosity, e
     :return:
     """
     logging.getLogger().setLevel(level=getattr(logging, verbosity))
+    dynamo_manager = DynamoTableManagement()
+    config = ConfigObj(infile=server_config, configspec='flyby/configspec.ini', stringify=True)
+    res = config.validate(Validator(), preserve_errors=True)
+    if res is not True:
+        for section, key, msg in flatten_errors(config, res):
+            click.echo("{}: {} in {}".format(key, msg, section))
+        raise click.ClickException('bad server config')
+
+    # Create the DynamoDB tables if missing, update the DynamoDB read/write capacity if required
+    dynamo_manager.update_capacity(dynamo_host, dynamo_region, table_root, logger, config)
     if log_config:
         with open(log_config, 'r') as conf:
             logging.config.dictConfig(yaml.load(conf))
     scheduler = BackgroundScheduler(timezone=utc)
-    scheduler.add_job(update, 'interval', seconds=10, args=(fqdn, dynamo_region, dynamo_host, table_root))
+    scheduler.add_job(update, 'interval', seconds=10, args=(fqdn,))
     scheduler.start()
     if environment == "development":
         app.run(host='0.0.0.0')
