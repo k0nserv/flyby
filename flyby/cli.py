@@ -2,7 +2,7 @@ import click
 from pytz import utc
 from flyby.haproxy import Haproxy
 from apscheduler.schedulers.background import BackgroundScheduler
-from flyby.models import ServiceModel, BackendModel, TargetGroupModel, ResolverModel, DynamoCapacityManagement
+from flyby.models import ServiceModel, BackendModel, TargetGroupModel, ResolverModel, DynamoTableManagement
 from flyby.service import Service
 from flyby.server import app
 from sys import exit
@@ -12,7 +12,6 @@ import logging.config
 import time
 import yaml
 from waitress import serve
-from pynamodb.connection import Connection
 
 
 logger = logging.getLogger(__name__)
@@ -24,38 +23,8 @@ def cli():
     pass
 
 
-def update(fqdn, dynamo_region, dynamo_host, table_root):
-    dynamo_manager = DynamoCapacityManagement()
+def update(fqdn):
     start_time = time.time()
-    models = [BackendModel, ServiceModel, TargetGroupModel, ResolverModel]
-    for model in models:
-        if not model.Meta.table_name.startswith(table_root):
-            model.Meta.table_name = "{0}-{1}".format(table_root, model.Meta.table_name)
-        default_table_name = model.Meta.table_name.replace('{}-'.format(table_root), "")
-        model.Meta.region = dynamo_region
-        if dynamo_host:
-            model.Meta.host = dynamo_host
-            conn = Connection(host=dynamo_host)
-        else:
-            conn = Connection(region=dynamo_region)
-        if model.exists():
-            table_capacity = dynamo_manager.capacity_check(default_table_name, model.Meta.table_name, conn)
-            if not table_capacity['result'] and table_capacity['decreases'] < 4:
-                conn.update_table(
-                    table_name=model.Meta.table_name, read_capacity_units=table_capacity['read'],
-                    write_capacity_units=table_capacity['write']
-                )
-                logger.info("Updating {} table read/write capacity".format(model.Meta.table_name))
-            elif not table_capacity['result'] and table_capacity['write'] >= 4:
-                logger.error("Unable to decrease capacity on {} table".format(model.Meta.table_name))
-        if not model.exists():
-            logger.info("Creating {} table".format(model.Meta.table_name))
-            read_capacity_units = dynamo_manager.return_capacity(default_table_name)['ReadCapacityUnits']
-            write_capacity_units = dynamo_manager.return_capacity(default_table_name)['WriteCapacityUnits']
-            model.create_table(read_capacity_units=read_capacity_units,
-                               write_capacity_units=write_capacity_units,
-                               wait=True
-                               )
     resolvers = Service.query_resolvers()
     services = Service.query_services()
     Haproxy().update(fqdn=fqdn, resolvers=resolvers, services=services)
@@ -110,11 +79,15 @@ def start(fqdn, dynamo_region, dynamo_host, table_root, log_config, verbosity, e
     :return:
     """
     logging.getLogger().setLevel(level=getattr(logging, verbosity))
+    dynamo_manager = DynamoTableManagement()
+
+    # Create the DynamoDB tables if missing, update the DynamoDB read/write capacity if required
+    dynamo_manager.update_capacity(dynamo_host, dynamo_region, table_root, logger)
     if log_config:
         with open(log_config, 'r') as conf:
             logging.config.dictConfig(yaml.load(conf))
     scheduler = BackgroundScheduler(timezone=utc)
-    scheduler.add_job(update, 'interval', seconds=10, args=(fqdn, dynamo_region, dynamo_host, table_root))
+    scheduler.add_job(update, 'interval', seconds=10, args=(fqdn,))
     scheduler.start()
     if environment == "development":
         app.run(host='0.0.0.0')

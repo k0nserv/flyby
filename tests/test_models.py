@@ -1,10 +1,10 @@
-from flyby.cli import Connection
-from flyby.models import ConfigObj, DynamoCapacityManagement
+from flyby.models import Connection
+from flyby.models import ConfigObj, DynamoTableManagement
 import pytest
 
 
 def test_capacity_check(mock_dynamo_call, mocker, mock_config_file):
-    dynamo_manager = DynamoCapacityManagement()
+    dynamo_manager = DynamoTableManagement()
     assert dynamo_manager.capacity_check('service', 'flyby-service', Connection) == {
         'decreases': 0,
         'read': 5,
@@ -31,7 +31,7 @@ def mock_dynamo_call(mocker):
         'TableSizeBytes': 0,
         'TableStatus': 'ACTIVE'
     }
-    mocker.patch('flyby.cli.Connection.describe_table', return_value=results)
+    mocker.patch('flyby.models.Connection.describe_table', return_value=results)
 
 
 @pytest.fixture
@@ -42,16 +42,16 @@ def mock_config_file(mocker, tmpdir):
         [dynamodb]
 
             [[backend]]
-                ReadCapacityUnits = 50
-                WriteCapacityUnits = 10
+                read_capacity_units = 50
+                write_capacity_units = 10
 
             [[service]]
-                ReadCapacityUnits = 5
-                WriteCapacityUnits = 2
+                read_capacity_units = 5
+                write_capacity_units = 2
 
             [[target-group]]
-                ReadCapacityUnits = 10
-                WriteCapacityUnits = 2
+                read_capacity_units = 10
+                write_capacity_units = 2
 
             [[resolver]]
 
@@ -63,20 +63,20 @@ def mock_config_file(mocker, tmpdir):
         [dynamodb]
 
             [[backend]]
-                ReadCapacityUnits = integer(default=1)
-                WriteCapacityUnits = integer(default=1)
+                read_capacity_units = integer(default=1)
+                write_capacity_units = integer(default=1)
 
             [[service]]
-                ReadCapacityUnits = integer(default=1)
-                WriteCapacityUnits = integer(default=1)
+                read_capacity_units = integer(default=1)
+                write_capacity_units = integer(default=1)
 
             [[target-group]]
-                ReadCapacityUnits = integer(default=1)
-                WriteCapacityUnits = integer(default=1)
+                read_capacity_units = integer(default=1)
+                write_capacity_units = integer(default=1)
 
             [[resolver]]
-                ReadCapacityUnits = integer(default=1)
-                WriteCapacityUnits = integer(default=1)
+                read_capacity_units = integer(default=1)
+                write_capacity_units = integer(default=1)
 
         """
     )
