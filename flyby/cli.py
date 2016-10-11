@@ -67,8 +67,8 @@ def update(fqdn):
                   ['development', 'production']),
               default='development')
 @click.option('-c', '--server-config',
-              envvar='SLG_SERVER_CONFIG',
-              help='Slingshot server configuration file.')
+              envvar='FLYBY_SERVER_CONFIG',
+              help='Flyby configuration file.')
 def start(fqdn, dynamo_region, dynamo_host, table_root, log_config, verbosity, environment, server_config):
     """
     Starts an APScheduler job to periodically reload HAProxy config as well as run the API to register/deregister
