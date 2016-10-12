@@ -189,6 +189,7 @@ class DynamoTableManagement:
             default_table_name = model.Meta.table_name
             if not model.Meta.table_name.startswith(table_root):
                 model.Meta.table_name = "{0}-{1}".format(table_root, model.Meta.table_name)
+                model.Meta.region = dynamo_region
             if not model.exists():
                 logger.info("Creating {} table".format(model.Meta.table_name))
                 read_capacity_units = self.return_capacity(default_table_name, config)['read_capacity_units']
