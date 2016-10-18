@@ -15,7 +15,6 @@ from waitress import serve
 from configobj import ConfigObj, flatten_errors
 from validate import Validator
 
-
 logger = logging.getLogger(__name__)
 metrics = logging.getLogger('metrics')
 
@@ -26,12 +25,16 @@ def cli():
 
 
 def update(fqdn):
-    start_time = time.time()
-    resolvers = Service.query_resolvers()
-    services = Service.query_services()
-    Haproxy().update(fqdn=fqdn, resolvers=resolvers, services=services)
-    metrics.info('background-refresh.duration {}'.format(time.time() - start_time))
-    metrics.info('active-thread-count {}'.format(threading.active_count()))
+    logger.debug("Started job...")
+    try:
+        start_time = time.time()
+        resolvers = Service.query_resolvers()
+        services = Service.query_services()
+        Haproxy().update(fqdn=fqdn, resolvers=resolvers, services=services)
+        metrics.info('background-refresh.duration {}'.format(time.time() - start_time))
+        metrics.info('active-thread-count {}'.format(threading.active_count()))
+    finally:
+        logger.debug("Finished job.")
 
 
 @cli.command()
