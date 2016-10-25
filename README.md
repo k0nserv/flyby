@@ -15,7 +15,7 @@ Every minute the load balancer syncs-up and refreshes its configuration when nee
 This docker-compose demo uses [DynamoDBLocal](http://docs.aws.amazon.com/amazondynamodb/latest/developerguide/DynamoDBLocal.html) for mocking DynamoDB, however it is possible to use other backends such as [moto](https://github.com/spulec/moto) locally.
 
 This is a simple scenario of registering a foo example service
-```
+```sh
 ## Start server with a dynamodb local server and a local service
 docker-compose up
 
